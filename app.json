@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Bazaar",
+    "slug": "bazaar-grupo16",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bazaar.app"
+    },
+    "android": {
+      "package": "com.bazaar.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "scheme": "bazaar",
+    "extra": {
+      "eas": {
+        "projectId": "e732a3a7-c154-452b-9582-f87ac91ba8c9"
+      }
+    },
+    "owner": "valenpontaut"
+  }
+}
