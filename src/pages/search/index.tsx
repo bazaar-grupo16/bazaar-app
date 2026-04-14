@@ -1,9 +1,15 @@
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useProducts, type Product } from "@/entities/product";
+import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { Button } from "@/shared/ui";
 
+type SearchNavigationProps = NativeStackNavigationProp<RootStackParamList, "Tabs">;
+
 export function SearchPage() {
+  const navigation = useNavigation<SearchNavigationProps>();
   const { data, error, isLoading, isRefetching, refetch } = useProducts({ limit: 20, offset: 0 });
 
   if (isLoading) {
@@ -45,17 +51,25 @@ export function SearchPage() {
         </View>
       }
       refreshing={isRefetching}
-      renderItem={({ item }) => <ProductCard product={item} />}
+      renderItem={({ item }) => (
+        <ProductCard product={item} onPress={() => navigation.navigate("ProductDetail", { productId: item.id })} />
+      )}
       onRefresh={() => void refetch()}
     />
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, onPress }: { product: Product; onPress: () => void }) {
   const firstImage = product.images?.[0];
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.82}
+      accessibilityRole="button"
+      accessibilityLabel={`Ver detalle de ${product.title}`}
+      onPress={onPress}
+    >
       {firstImage ? (
         <Image source={{ uri: firstImage }} style={styles.image} resizeMode="cover" />
       ) : (
@@ -79,7 +93,7 @@ function ProductCard({ product }: { product: Product }) {
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

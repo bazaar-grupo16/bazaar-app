@@ -21,6 +21,10 @@ export type ProductListResponse = {
   offset: number;
 };
 
+export type ProductResponse = {
+  data: Product;
+};
+
 export type ProductListParams = {
   limit?: number;
   offset?: number;

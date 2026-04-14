@@ -1,5 +1,5 @@
 import { apiGet } from "@/shared/api";
-import type { ProductListParams, ProductListResponse } from "../model/types";
+import type { ProductListParams, ProductListResponse, ProductResponse } from "../model/types";
 
 function toQueryString(params: ProductListParams) {
   const searchParams = new URLSearchParams();
@@ -30,4 +30,8 @@ function toQueryString(params: ProductListParams) {
 
 export function getProducts(params: ProductListParams = {}) {
   return apiGet<ProductListResponse>(`/products${toQueryString(params)}`);
+}
+
+export function getProduct(productId: string) {
+  return apiGet<ProductResponse>(`/products/${productId}`);
 }

@@ -1,10 +1,14 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { LoginPage } from "@/pages/login";
+import { ProductDetailPage } from "@/pages/product-detail";
 import { TabsNavigator } from "./TabsNavigator";
 
 export type RootStackParamList = {
   Login: undefined;
   Tabs: undefined;
+  ProductDetail: {
+    productId: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -14,6 +18,7 @@ export function RootNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginPage} />
       <Stack.Screen name="Tabs" component={TabsNavigator} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
     </Stack.Navigator>
   );
 }
