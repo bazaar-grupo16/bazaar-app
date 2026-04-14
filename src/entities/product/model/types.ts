@@ -1,0 +1,30 @@
+export type ProductStatus = "active" | "inactive";
+
+export type Product = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  stock: number;
+  category: string;
+  sellerId: string;
+  status: ProductStatus;
+  createdAt: string;
+  updatedAt: string;
+  images?: string[];
+};
+
+export type ProductListResponse = {
+  data: Product[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type ProductListParams = {
+  limit?: number;
+  offset?: number;
+  searchQuery?: string;
+  category?: string;
+  sellerId?: string;
+};

@@ -1,0 +1,33 @@
+import { apiGet } from "@/shared/api";
+import type { ProductListParams, ProductListResponse } from "../model/types";
+
+function toQueryString(params: ProductListParams) {
+  const searchParams = new URLSearchParams();
+
+  if (params.limit !== undefined) {
+    searchParams.set("limit", String(params.limit));
+  }
+
+  if (params.offset !== undefined) {
+    searchParams.set("offset", String(params.offset));
+  }
+
+  if (params.searchQuery) {
+    searchParams.set("search_query", params.searchQuery);
+  }
+
+  if (params.category) {
+    searchParams.set("category", params.category);
+  }
+
+  if (params.sellerId) {
+    searchParams.set("seller_id", params.sellerId);
+  }
+
+  const queryString = searchParams.toString();
+  return queryString ? `?${queryString}` : "";
+}
+
+export function getProducts(params: ProductListParams = {}) {
+  return apiGet<ProductListResponse>(`/products${toQueryString(params)}`);
+}
