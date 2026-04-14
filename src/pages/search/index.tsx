@@ -1,23 +1,185 @@
-import { View, Text, StyleSheet } from "react-native";
-import { colors, typography } from "@/shared/styles";
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { useProducts, type Product } from "@/entities/product";
+import { colors, radius, spacing, typography } from "@/shared/styles";
+import { Button } from "@/shared/ui";
 
 export function SearchPage() {
+  const { data, error, isLoading, isRefetching, refetch } = useProducts({ limit: 20, offset: 0 });
+
+  if (isLoading) {
+    return (
+      <View style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color={colors.brand[500]} />
+        <Text style={styles.helperText}>Cargando catálogo...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centeredContainer}>
+        <Text style={styles.title}>No se pudo cargar el catálogo</Text>
+        <Text style={styles.helperText}>Revisá la URL de la API o intentá de nuevo.</Text>
+        <Button onPress={() => void refetch()} loading={isRefetching}>
+          Reintentar
+        </Button>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Página de búsqueda</Text>
+    <FlatList
+      contentContainerStyle={styles.listContent}
+      data={data?.data ?? []}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <Text style={styles.title}>Catálogo</Text>
+          <Text style={styles.helperText}>{data?.total ?? 0} productos encontrados</Text>
+        </View>
+      }
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>Todavía no hay productos</Text>
+          <Text style={styles.helperText}>La API respondió correctamente, pero no devolvió resultados.</Text>
+        </View>
+      }
+      refreshing={isRefetching}
+      renderItem={({ item }) => <ProductCard product={item} />}
+      onRefresh={() => void refetch()}
+    />
+  );
+}
+
+function ProductCard({ product }: { product: Product }) {
+  const firstImage = product.images?.[0];
+
+  return (
+    <View style={styles.card}>
+      {firstImage ? (
+        <Image source={{ uri: firstImage }} style={styles.image} resizeMode="cover" />
+      ) : (
+        <View style={styles.imagePlaceholder}>
+          <Text style={styles.imagePlaceholderText}>Sin imagen</Text>
+        </View>
+      )}
+
+      <View style={styles.cardBody}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.productTitle}>{product.title}</Text>
+          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+        </View>
+        <Text style={styles.description} numberOfLines={2}>
+          {product.description}
+        </Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.meta}>{product.category}</Text>
+          <Text style={[styles.meta, product.stock === 0 && styles.outOfStock]}>
+            {product.stock > 0 ? `${product.stock} disponibles` : "Sin stock"}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centeredContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: spacing.md,
+    padding: spacing.xl,
     backgroundColor: colors.white,
   },
-  text: {
-    fontSize: typography.size.lg,
+  listContent: {
+    flexGrow: 1,
+    gap: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.white,
+  },
+  header: {
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  title: {
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+    textAlign: "center",
+  },
+  helperText: {
+    fontSize: typography.size.md,
     color: colors.gray[700],
+    textAlign: "center",
+  },
+  emptyState: {
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+  },
+  emptyTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[900],
+  },
+  card: {
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+  },
+  image: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    backgroundColor: colors.gray[100],
+  },
+  imagePlaceholder: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.gray[100],
+  },
+  imagePlaceholderText: {
+    fontSize: typography.size.md,
+    color: colors.gray[500],
+  },
+  cardBody: {
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    gap: spacing.md,
+    justifyContent: "space-between",
+  },
+  productTitle: {
+    flex: 1,
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+  },
+  price: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semibold,
+    color: colors.brand[700],
+  },
+  description: {
+    fontSize: typography.size.md,
+    color: colors.gray[700],
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  meta: {
+    fontSize: typography.size.sm,
+    color: colors.gray[500],
+  },
+  outOfStock: {
+    color: colors.error,
   },
 });
