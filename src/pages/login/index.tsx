@@ -59,14 +59,17 @@ export function LoginPage() {
         <View style={styles.heroOverlay} />
 
         <View style={styles.heroContent}>
-          <View style={styles.iconPlaceholder}>
-            <Text style={styles.iconText}>🛍️</Text>
-          </View>
-          <Text style={styles.heroTitle}>Bazaar</Text>
-          <Text style={styles.heroSubtitle}>Comprá y vendé sin límites</Text>
+                  <View style={styles.iconPlaceholder}>
+                    <Image
+                      source={require('../../../assets/icon.png')}
+                      style={styles.logoImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Text style={styles.heroTitle}>Bazaar</Text>
+                  <Text style={styles.heroSubtitle}>Comprá y vendé sin límites</Text>
+                </View>
         </View>
-      </View>
-
       <View style={styles.sheetContainer}>
         <View style={styles.tabsContainer}>
           <View style={styles.tabsWrapper}>
@@ -232,9 +235,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
+    overflow: "hidden",
   },
-  iconText: {
-    fontSize: typography.size.xl,
+  logoImage: {
+    width: 36,
+    height: 36,
   },
   heroTitle: {
     color: colors.white,
