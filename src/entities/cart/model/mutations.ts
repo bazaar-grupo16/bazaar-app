@@ -12,7 +12,7 @@ export function useAddToCart(userId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (productId: number) => addToCart(userId, productId),
+    mutationFn: (productId: string) => addToCart(userId, productId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
     },
@@ -23,7 +23,7 @@ export function useRemoveCartItem(userId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (productId: number) => removeCartItem(userId, productId),
+    mutationFn: (productId: string) => removeCartItem(userId, productId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
     },
@@ -49,7 +49,7 @@ export function useIncrementCartItem(userId: number) {
       productId,
       quantity,
     }: {
-      productId: number;
+      productId: string;
       quantity: number;
     }) => incrementCartItem(userId, productId, quantity),
     onSuccess: () => {
@@ -66,7 +66,7 @@ export function useDecrementCartItem(userId: number) {
       productId,
       quantity,
     }: {
-      productId: number;
+      productId: string;
       quantity: number;
     }) => decrementCartItem(userId, productId, quantity),
     onSuccess: () => {

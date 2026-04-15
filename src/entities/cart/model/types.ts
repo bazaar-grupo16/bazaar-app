@@ -6,7 +6,7 @@ export type Price = {
 export type CartItemStatus = "active" | "inactive";
 
 export type CartItem = {
-  productId: number;
+  productId: string;
   title: string;
   unitPrice: Price;
   quantity: number;

@@ -88,7 +88,7 @@ function ProductCard({ product, onPress }: { product: Product; onPress: () => vo
     setFeedback("loading");
     setErrorMsg("");
 
-    addToCart.mutate(Number(product.id), {
+    addToCart.mutate(product.id, {
       onSuccess: () => {
         setFeedback("success");
         if (successTimerRef.current) clearTimeout(successTimerRef.current);

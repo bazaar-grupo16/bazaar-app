@@ -83,13 +83,13 @@ export function getCart(userId: number) {
   return cartGet<CartResponse>(`/cart/${userId}`);
 }
 
-export function addToCart(userId: number, productId: number) {
+export function addToCart(userId: number, productId: string) {
   return cartMutate("POST", `/cart/${userId}/items`, { productId }).then(
     (res) => res.json() as Promise<CartItemResponse>,
   );
 }
 
-export function removeCartItem(userId: number, productId: number) {
+export function removeCartItem(userId: number, productId: string) {
   return cartMutate("DELETE", `/cart/${userId}/items/${productId}`);
 }
 
@@ -99,7 +99,7 @@ export function clearCart(userId: number) {
 
 export function incrementCartItem(
   userId: number,
-  productId: number,
+  productId: string,
   quantity: number,
 ) {
   return cartMutate("PUT", `/cart/${userId}/${productId}/increment`, {
@@ -109,7 +109,7 @@ export function incrementCartItem(
 
 export function decrementCartItem(
   userId: number,
-  productId: number,
+  productId: string,
   quantity: number,
 ) {
   return cartMutate("PUT", `/cart/${userId}/${productId}/decrement`, {

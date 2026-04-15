@@ -26,8 +26,8 @@ export function CartPage() {
   const cart = data?.data;
   const items = cart?.items ?? [];
 
-  const mutatingProductIds = new Set<number>();
-  if (removeMutation.isPending && typeof removeMutation.variables === "number") {
+  const mutatingProductIds = new Set<string>();
+  if (removeMutation.isPending && typeof removeMutation.variables === "string") {
     mutatingProductIds.add(removeMutation.variables);
   }
   if (incrementMutation.isPending && incrementMutation.variables) {
