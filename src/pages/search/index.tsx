@@ -5,6 +5,7 @@ import { useProducts, type Product } from "@/entities/product";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { Button } from "@/shared/ui";
+import React from "react";
 
 type SearchNavigationProps = NativeStackNavigationProp<RootStackParamList, "Tabs">;
 
@@ -25,6 +26,7 @@ export function SearchPage() {
   }
 
   if (error) {
+    console.log(error);
     return (
       <View style={styles.centeredContainer}>
         <Text style={styles.title}>No se pudo cargar el catálogo</Text>

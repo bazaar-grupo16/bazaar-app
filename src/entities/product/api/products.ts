@@ -33,9 +33,9 @@ function toQueryString(params: ProductListParams) {
 }
 
 export function getProducts(params: ProductListParams = {}) {
-  return apiGet<ProductListResponse>(`/products${toQueryString(params)}`);
+  return apiGet<ProductListResponse>(`/catalog/products${toQueryString(params)}`);
 }
 
 export function getProduct(productId: string) {
-  return apiGet<ProductResponse>(`/products/${productId}`);
+  return apiGet<ProductResponse>(`/catalog/products/${productId}`);
 }
