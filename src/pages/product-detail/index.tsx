@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -22,6 +22,8 @@ import {
 } from "react-native";
 import { useProduct } from "@/entities/product";
 import type { Product } from "@/entities/product";
+import { useAddToCart } from "@/entities/cart";
+import { ApiError } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { Button } from "@/shared/ui";
@@ -74,13 +76,56 @@ export function ProductDetailPage() {
   return <ProductDetailView product={data.data} onBack={() => navigation.goBack()} />;
 }
 
+type AddToCartFeedback = "idle" | "loading" | "success" | "error";
+
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
   const isDisabled = product.status === "inactive";
   const isOutOfStock = !isDisabled && product.stock === 0;
   const canAddToCart = !isDisabled && product.stock > 0;
 
-  function handleAddToCart() {
-    Alert.alert("Producto agregado", `${product.title} se agregará al carrito cuando esté integrado.`);
+  const addToCart = useAddToCart(1001);
+  const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const successTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleAddToCart = useCallback(() => {
+    if (!canAddToCart) return;
+
+    setFeedback("loading");
+    setErrorMsg("");
+
+    addToCart.mutate(product.id, {
+      onSuccess: () => {
+        setFeedback("success");
+        if (successTimerRef.current) clearTimeout(successTimerRef.current);
+        successTimerRef.current = setTimeout(() => setFeedback("idle"), 2000);
+      },
+      onError: (err) => {
+        setFeedback("error");
+        if (err instanceof ApiError) {
+          const detail = (err.details as { detail?: string })?.detail;
+          if (err.status === 422) {
+            setErrorMsg(detail ?? "Stock insuficiente");
+          } else if (err.status === 404) {
+            setErrorMsg("Producto no encontrado");
+          } else if (err.status === 503) {
+            setErrorMsg("Servicio no disponible");
+          } else {
+            setErrorMsg(detail ?? "Error al agregar");
+          }
+        } else {
+          setErrorMsg("Error de conexión");
+        }
+      },
+    });
+  }, [canAddToCart, addToCart, product.id]);
+
+  function getButtonLabel() {
+    if (feedback === "loading") return "Agregando...";
+    if (feedback === "success") return "¡Agregado! ✓";
+    if (feedback === "error") return errorMsg || "Error";
+    if (!canAddToCart) return isOutOfStock ? "Sin Stock" : "No Disponible";
+    return "Agregar al Carrito";
   }
 
   return (
@@ -139,11 +184,16 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
           <Text style={styles.disabledActionText}>No disponible</Text>
         )}
         <Button
-          style={styles.actionButton}
-          disabled={!canAddToCart}
+          style={[
+            styles.actionButton,
+            feedback === "success" && styles.actionButtonSuccess,
+            feedback === "error" && styles.actionButtonError,
+          ]}
+          disabled={!canAddToCart || feedback === "loading"}
+          loading={feedback === "loading"}
           onPress={handleAddToCart}
         >
-          {canAddToCart ? "Agregar al Carrito" : isOutOfStock ? "Sin Stock" : "No Disponible"}
+          {getButtonLabel()}
         </Button>
       </View>
     </SafeAreaView>
@@ -534,5 +584,11 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     backgroundColor: ORANGE_600,
+  },
+  actionButtonSuccess: {
+    backgroundColor: "#16a34a",
+  },
+  actionButtonError: {
+    backgroundColor: colors.error,
   },
 });
