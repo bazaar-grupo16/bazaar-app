@@ -6,13 +6,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  StatusBar
+  StatusBar,
+  TextInput
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation";
+import { colors, typography, spacing } from "@/shared/styles/theme";
+import { FormButton } from "@/shared/ui/FormButton";
 
-// Imagen de referencia usada en wireframes
 const HERO_IMAGE = "https://images.unsplash.com/photo-1548335684-7d082b06d74d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWJyYW50JTIwY29sb3JmdWwlMjBtYXJrZXQlMjBwcm9kdWN0cyUyMG92ZXJoZWFkfGVufDF8fHx8MTc3NTQ4MzI1Mnww&ixlib=rb-4.1.0&q=80&w=1080";
 
 const HARDCODED_EMAIL = "admin@bazaar.com";
@@ -25,6 +27,19 @@ const { height } = Dimensions.get("window");
 export function LoginPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Login">>();
   const [tab, setTab] = useState<Tab>("login");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  function handleLogin() {
+    if (email === HARDCODED_EMAIL && password === HARDCODED_PASSWORD) {
+      setError("");
+      navigation.replace("Tabs");
+    } else {
+      setError("Credenciales incorrectas");
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -44,16 +59,14 @@ export function LoginPage() {
       </View>
 
       <View style={styles.sheetContainer}>
-        {/* Drag handle (la barrita gris de arriba) */}
-        <View style={styles.dragHandleContainer}>
-        </View>
-
-        {/* Tabs (Login / Register) */}
         <View style={styles.tabsContainer}>
           <View style={styles.tabsWrapper}>
             <TouchableOpacity
               style={[styles.tab, tab === "login" && styles.activeTab]}
-              onPress={() => setTab("login")}
+              onPress={() => {
+                setTab("login");
+                setError("");
+              }}
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, tab === "login" && styles.activeTabText]}>
@@ -63,7 +76,10 @@ export function LoginPage() {
 
             <TouchableOpacity
               style={[styles.tab, tab === "register" && styles.activeTab]}
-              onPress={() => setTab("register")}
+              onPress={() => {
+                setTab("register");
+                setError("");
+              }}
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, tab === "register" && styles.activeTabText]}>
@@ -73,11 +89,51 @@ export function LoginPage() {
           </View>
         </View>
 
+        <View style={styles.formArea}>
+          {tab === "login" ? (
+            <View style={styles.formContainer}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="tu@email.com"
+                  placeholderTextColor={colors.gray[300]}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
 
-        <View style={styles.formPlaceholder}>
-          <Text style={styles.placeholderText}>
-          </Text>
+              <View style={styles.inputGroup}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Contraseña</Text>
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.gray[300]}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+              </View>
+
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+              <FormButton onPress={handleLogin} style={{ marginTop: spacing.sm }}>
+                Ingresar
+              </FormButton>
+
+            </View>
+          ) : (
+            <View style={styles.formPlaceholder}>
+              <Text style={styles.placeholderText}>
+              </Text>
+            </View>
+          )}
         </View>
+
       </View>
     </View>
   );
@@ -86,10 +142,10 @@ export function LoginPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.white,
   },
   heroContainer: {
-    height: height * 0.35, // Ocupa el 35% de la pantalla aprox
+    height: height * 0.35,
     width: "100%",
     position: "relative",
   },
@@ -100,65 +156,64 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(234, 88, 12, 0.4)", // Tinte naranja oscuro simulando el gradiente
+    backgroundColor: "rgba(234, 88, 12, 0.4)",
   },
   heroContent: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: 20,
+    paddingBottom: spacing.lg,
   },
   iconPlaceholder: {
     width: 56,
     height: 56,
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.white,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     elevation: 5,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
   },
   iconText: {
-    fontSize: 24,
+    fontSize: typography.size.xl,
   },
   heroTitle: {
-    color: "#ffffff",
-    fontSize: 32,
-    fontWeight: "800",
+    color: colors.white,
+    fontSize: typography.size.xxl,
+    fontWeight: typography.weight.bold,
     letterSpacing: -0.5,
   },
   heroSubtitle: {
-    color: "#fff7ed",
-    fontSize: 14,
-    fontWeight: "400",
+    color: colors.brand[50],
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.regular,
   },
   sheetContainer: {
-      flex: 1,
-      backgroundColor: "#ffffff",
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      marginTop: -32,
-
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 12,
-      elevation: 8,
-    },
-    tabsContainer: {
-      paddingHorizontal: 20,
-      paddingTop: 24,
-      paddingBottom: 16,
-    },
+    flex: 1,
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -32,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  tabsContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+  },
   tabsWrapper: {
     flexDirection: "row",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: colors.gray[100],
     borderRadius: 16,
-    padding: 4,
+    padding: spacing.xs,
   },
   tab: {
     flex: 1,
@@ -167,30 +222,66 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   activeTab: {
-    backgroundColor: "#ffffff",
-    shadowColor: "#000",
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   tabText: {
-    fontSize: 14,
-    color: "#9ca3af",
-    fontWeight: "400",
+    fontSize: typography.size.sm,
+    color: colors.gray[500],
+    fontWeight: typography.weight.regular,
   },
   activeTabText: {
-    color: "#111827",
-    fontWeight: "600",
+    color: colors.gray[900],
+    fontWeight: typography.weight.semibold,
+  },
+  formArea: {
+    flex: 1,
+  },
+  formContainer: {
+    paddingHorizontal: spacing.lg,
+  },
+  inputGroup: {
+    marginBottom: spacing.md,
+  },
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[700],
+    marginBottom: spacing.sm,
+  },
+  input: {
+    backgroundColor: colors.gray[50],
+    borderWidth: 1,
+    borderColor: colors.gray[100],
+    borderRadius: 16,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+    fontSize: typography.size.md,
+    color: colors.gray[900],
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: spacing.lg,
+    fontWeight: typography.weight.semibold,
   },
   formPlaceholder: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 40,
     alignItems: "center",
   },
   placeholderText: {
-    color: "#9ca3af",
+    color: colors.gray[300],
     textAlign: "center",
   }
 });
