@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   Dimensions,
   StatusBar,
-  TextInput
+  TextInput,
+  ScrollView
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -32,6 +33,10 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+
   function handleLogin() {
     if (email === HARDCODED_EMAIL && password === HARDCODED_PASSWORD) {
       setError("");
@@ -39,6 +44,10 @@ export function LoginPage() {
     } else {
       setError("Credenciales incorrectas");
     }
+  }
+
+  function handleRegister() {
+    setError("");
   }
 
   return (
@@ -63,10 +72,7 @@ export function LoginPage() {
           <View style={styles.tabsWrapper}>
             <TouchableOpacity
               style={[styles.tab, tab === "login" && styles.activeTab]}
-              onPress={() => {
-                setTab("login");
-                setError("");
-              }}
+              onPress={() => { setTab("login"); setError(""); }}
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, tab === "login" && styles.activeTabText]}>
@@ -76,10 +82,7 @@ export function LoginPage() {
 
             <TouchableOpacity
               style={[styles.tab, tab === "register" && styles.activeTab]}
-              onPress={() => {
-                setTab("register");
-                setError("");
-              }}
+              onPress={() => { setTab("register"); setError(""); }}
               activeOpacity={0.8}
             >
               <Text style={[styles.tabText, tab === "register" && styles.activeTabText]}>
@@ -89,7 +92,11 @@ export function LoginPage() {
           </View>
         </View>
 
-        <View style={styles.formArea}>
+        <ScrollView
+          style={styles.formArea}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: spacing.xl }}
+        >
           {tab === "login" ? (
             <View style={styles.formContainer}>
               <View style={styles.inputGroup}>
@@ -124,16 +131,64 @@ export function LoginPage() {
               <FormButton onPress={handleLogin} style={{ marginTop: spacing.sm }}>
                 Ingresar
               </FormButton>
-
             </View>
           ) : (
-            <View style={styles.formPlaceholder}>
-              <Text style={styles.placeholderText}>
-              </Text>
+            <View style={styles.formContainer}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Nombre completo</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nombre"
+                  placeholderTextColor={colors.gray[300]}
+                  value={regName}
+                  onChangeText={setRegName}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="tu@email.com"
+                  placeholderTextColor={colors.gray[300]}
+                  value={regEmail}
+                  onChangeText={setRegEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Contraseña</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.gray[300]}
+                  value={regPassword}
+                  onChangeText={setRegPassword}
+                  secureTextEntry
+                />
+              </View>
+
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+              <FormButton onPress={handleRegister} style={{ marginTop: spacing.md }}>
+                Crear cuenta
+              </FormButton>
             </View>
           )}
-        </View>
 
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>
+              {tab === "login" ? "¿No tenés cuenta? " : "¿Ya tenés cuenta? "}
+            </Text>
+            <TouchableOpacity onPress={() => { setTab(tab === "login" ? "register" : "login"); setError(""); }}>
+              <Text style={styles.footerLink}>
+                {tab === "login" ? "Registrate gratis" : "Iniciá sesión"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -230,7 +285,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tabText: {
-    fontSize: typography.size.sm,
+    fontSize: 14,
     color: colors.gray[500],
     fontWeight: typography.weight.regular,
   },
@@ -276,12 +331,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     fontWeight: typography.weight.semibold,
   },
-  formPlaceholder: {
-    paddingTop: 40,
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
+    marginTop: spacing.lg,
   },
-  placeholderText: {
-    color: colors.gray[300],
-    textAlign: "center",
+  footerText: {
+    color: colors.gray[500],
+    fontSize: 13,
+  },
+  footerLink: {
+    color: colors.brand[500],
+    fontSize: 13,
+    fontWeight: typography.weight.bold,
   }
 });
