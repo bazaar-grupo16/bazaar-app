@@ -62,7 +62,7 @@ export function ProductDetailPage() {
         </View>
         <View style={styles.centeredContainer}>
           <Text style={styles.title}>No se pudo cargar el producto</Text>
-          <Text style={styles.helperText}>Revisá la conexión o intentá de nuevo.</Text>
+          <Text style={styles.helperText}>El catálogo no pudo responder en este momento. Intentá de nuevo.</Text>
           <Button onPress={() => void refetch()} loading={isRefetching}>
             Reintentar
           </Button>

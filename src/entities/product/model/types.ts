@@ -31,4 +31,5 @@ export type ProductListParams = {
   searchQuery?: string;
   category?: string;
   sellerId?: string;
+  includeInactive?: boolean;
 };

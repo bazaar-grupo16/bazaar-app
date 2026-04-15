@@ -11,6 +11,9 @@ type SearchNavigationProps = NativeStackNavigationProp<RootStackParamList, "Tabs
 export function SearchPage() {
   const navigation = useNavigation<SearchNavigationProps>();
   const { data, error, isLoading, isRefetching, refetch } = useProducts({ limit: 20, offset: 0 });
+  const visibleProducts = (data?.data ?? []).filter(
+    (product) => product.status === "inactive" || product.stock > 0,
+  );
 
   if (isLoading) {
     return (
@@ -25,7 +28,7 @@ export function SearchPage() {
     return (
       <View style={styles.centeredContainer}>
         <Text style={styles.title}>No se pudo cargar el catálogo</Text>
-        <Text style={styles.helperText}>Revisá la URL de la API o intentá de nuevo.</Text>
+        <Text style={styles.helperText}>El catálogo no pudo responder en este momento. Intentá de nuevo.</Text>
         <Button onPress={() => void refetch()} loading={isRefetching}>
           Reintentar
         </Button>
@@ -36,18 +39,20 @@ export function SearchPage() {
   return (
     <FlatList
       contentContainerStyle={styles.listContent}
-      data={data?.data ?? []}
+      data={visibleProducts}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <View style={styles.header}>
           <Text style={styles.title}>Catálogo</Text>
-          <Text style={styles.helperText}>{data?.total ?? 0} productos encontrados</Text>
+          <Text style={styles.helperText}>{visibleProducts.length} productos disponibles</Text>
         </View>
       }
       ListEmptyComponent={
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Todavía no hay productos</Text>
-          <Text style={styles.helperText}>La API respondió correctamente, pero no devolvió resultados.</Text>
+          <Text style={styles.helperText}>
+            El catálogo no devolvió productos disponibles para mostrar.
+          </Text>
         </View>
       }
       refreshing={isRefetching}
@@ -61,36 +66,51 @@ export function SearchPage() {
 
 function ProductCard({ product, onPress }: { product: Product; onPress: () => void }) {
   const firstImage = product.images?.[0];
+  const isInactive = product.status === "inactive";
+  const isOutOfStock = !isInactive && product.stock === 0;
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, isInactive && styles.inactiveCard]}
       activeOpacity={0.82}
       accessibilityRole="button"
       accessibilityLabel={`Ver detalle de ${product.title}`}
       onPress={onPress}
     >
-      {firstImage ? (
-        <Image source={{ uri: firstImage }} style={styles.image} resizeMode="cover" />
-      ) : (
-        <View style={styles.imagePlaceholder}>
-          <Text style={styles.imagePlaceholderText}>Sin imagen</Text>
-        </View>
-      )}
+      <View>
+        {firstImage ? (
+          <Image source={{ uri: firstImage }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Text style={styles.imagePlaceholderText}>Sin imagen</Text>
+          </View>
+        )}
+        {(isInactive || isOutOfStock) && (
+          <View style={[styles.statusBadge, isInactive ? styles.inactiveBadge : styles.outOfStockBadge]}>
+            <Text style={[styles.statusBadgeText, isInactive ? styles.inactiveBadgeText : styles.outOfStockBadgeText]}>
+              {isInactive ? "No disponible" : "Sin stock"}
+            </Text>
+          </View>
+        )}
+      </View>
 
       <View style={styles.cardBody}>
         <View style={styles.cardHeader}>
           <Text style={styles.productTitle}>{product.title}</Text>
-          <Text style={styles.price}>${product.price.toFixed(2)}</Text>
+          {!isInactive ? <Text style={styles.price}>${product.price.toFixed(2)}</Text> : null}
         </View>
         <Text style={styles.description} numberOfLines={2}>
           {product.description}
         </Text>
         <View style={styles.metaRow}>
           <Text style={styles.meta}>{product.category}</Text>
-          <Text style={[styles.meta, product.stock === 0 && styles.outOfStock]}>
-            {product.stock > 0 ? `${product.stock} disponibles` : "Sin stock"}
-          </Text>
+          {isInactive ? (
+            <Text style={[styles.meta, styles.inactiveText]}>No disponible</Text>
+          ) : (
+            <Text style={[styles.meta, isOutOfStock && styles.outOfStock]}>
+              {product.stock > 0 ? `${product.stock} disponibles` : "Sin stock"}
+            </Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -144,6 +164,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.white,
   },
+  inactiveCard: {
+    opacity: 0.78,
+  },
   image: {
     width: "100%",
     aspectRatio: 16 / 9,
@@ -159,6 +182,30 @@ const styles = StyleSheet.create({
   imagePlaceholderText: {
     fontSize: typography.size.md,
     color: colors.gray[500],
+  },
+  statusBadge: {
+    position: "absolute",
+    right: spacing.sm,
+    top: spacing.sm,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  outOfStockBadge: {
+    backgroundColor: "#FEF3C7",
+  },
+  inactiveBadge: {
+    backgroundColor: colors.gray[900],
+  },
+  statusBadgeText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+  },
+  outOfStockBadgeText: {
+    color: "#92400E",
+  },
+  inactiveBadgeText: {
+    color: colors.white,
   },
   cardBody: {
     gap: spacing.sm,
@@ -195,5 +242,9 @@ const styles = StyleSheet.create({
   },
   outOfStock: {
     color: colors.error,
+  },
+  inactiveText: {
+    color: colors.gray[700],
+    fontWeight: typography.weight.semibold,
   },
 });

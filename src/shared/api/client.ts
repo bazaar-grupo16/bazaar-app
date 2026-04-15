@@ -25,7 +25,8 @@ function buildUrl(path: string) {
 }
 
 export async function apiGet<TResponse>(path: string): Promise<TResponse> {
-  const response = await fetch(buildUrl(path), {
+  const url = buildUrl(path);
+  const response = await fetch(url, {
     headers: {
       Accept: "application/json",
     },
@@ -38,6 +39,14 @@ export async function apiGet<TResponse>(path: string): Promise<TResponse> {
       details = await response.json();
     } catch {
       details = await response.text();
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("API request failed", {
+        url,
+        status: response.status,
+        details,
+      });
     }
 
     throw new ApiError(response.statusText, response.status, details);

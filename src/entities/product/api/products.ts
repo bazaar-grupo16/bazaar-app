@@ -24,6 +24,10 @@ function toQueryString(params: ProductListParams) {
     searchParams.set("seller_id", params.sellerId);
   }
 
+  if (params.includeInactive !== undefined) {
+    searchParams.set("include_inactive", String(params.includeInactive));
+  }
+
   const queryString = searchParams.toString();
   return queryString ? `?${queryString}` : "";
 }
