@@ -54,3 +54,41 @@ export async function apiGet<TResponse>(path: string): Promise<TResponse> {
 
   return response.json() as Promise<TResponse>;
 }
+
+export async function apiPost<TResponse, TBody = unknown>(
+  path: string,
+  body: TBody
+): Promise<TResponse> {
+  const url = buildUrl(path);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    let details: unknown;
+
+    try {
+      details = await response.json();
+    } catch {
+      details = await response.text();
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("API request failed (POST)", {
+        url,
+        status: response.status,
+        details,
+      });
+    }
+
+    throw new ApiError(response.statusText, response.status, details);
+  }
+
+  return response.json() as Promise<TResponse>;
+}
