@@ -28,6 +28,14 @@ function toQueryString(params: ProductListParams) {
     searchParams.set("include_inactive", String(params.includeInactive));
   }
 
+  if (params.sortBy) {
+    searchParams.set("sort_by", params.sortBy);
+  }
+
+  if (params.order) {
+    searchParams.set("order", params.order);
+  }
+
   const queryString = searchParams.toString();
   return queryString ? `?${queryString}` : "";
 }
