@@ -80,7 +80,7 @@ function ProductCard({ product, onPress }: { product: Product; onPress: () => vo
   const addToCart = useAddToCart(1001);
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const successTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleAddToCart = useCallback(() => {
     if (!canAdd) return;
@@ -88,7 +88,7 @@ function ProductCard({ product, onPress }: { product: Product; onPress: () => vo
     setFeedback("loading");
     setErrorMsg("");
 
-    addToCart.mutate(product.id, {
+    addToCart.mutate({ productId: product.id }, {
       onSuccess: () => {
         setFeedback("success");
         if (successTimerRef.current) clearTimeout(successTimerRef.current);

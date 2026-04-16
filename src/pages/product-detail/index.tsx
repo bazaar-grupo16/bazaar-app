@@ -83,10 +83,12 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const isOutOfStock = !isDisabled && product.stock === 0;
   const canAddToCart = !isDisabled && product.stock > 0;
 
+  const [quantity, setQuantity] = useState(1);
+
   const addToCart = useAddToCart(1001);
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const successTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleAddToCart = useCallback(() => {
     if (!canAddToCart) return;
@@ -94,7 +96,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
     setFeedback("loading");
     setErrorMsg("");
 
-    addToCart.mutate(product.id, {
+    addToCart.mutate({ productId: product.id, quantity }, {
       onSuccess: () => {
         setFeedback("success");
         if (successTimerRef.current) clearTimeout(successTimerRef.current);
@@ -176,13 +178,34 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
 
       <View style={styles.actionBar}>
         {!isDisabled ? (
-          <View>
+          <View style={styles.actionInfo}>
             <Text style={styles.actionLabel}>Precio</Text>
-            <Text style={styles.actionPrice}>${product.price.toFixed(2)}</Text>
+            <Text style={styles.actionPrice}>${(product.price * quantity).toFixed(2)}</Text>
           </View>
         ) : (
           <Text style={styles.disabledActionText}>No disponible</Text>
         )}
+        
+        {!isDisabled && !isOutOfStock && (
+          <View style={styles.quantityContainer}>
+            <TouchableOpacity
+              style={styles.quantityBtn}
+              onPress={() => setQuantity((q) => Math.max(1, q - 1))}
+              disabled={quantity <= 1 || feedback === "loading"}
+            >
+              <Ionicons name="remove" size={18} color={quantity <= 1 ? colors.gray[300] : colors.gray[700]} />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{quantity}</Text>
+            <TouchableOpacity
+              style={styles.quantityBtn}
+              onPress={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+              disabled={quantity >= product.stock || feedback === "loading"}
+            >
+              <Ionicons name="add" size={18} color={quantity >= product.stock ? colors.gray[300] : colors.gray[700]} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <Button
           style={[
             styles.actionButton,
@@ -584,6 +607,29 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     backgroundColor: ORANGE_600,
+  },
+  actionInfo: {
+    minWidth: 80,
+  },
+  quantityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.gray[50],
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+  },
+  quantityBtn: {
+    padding: spacing.xs,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quantityText: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[900],
+    minWidth: 24,
+    textAlign: "center",
   },
   actionButtonSuccess: {
     backgroundColor: "#16a34a",

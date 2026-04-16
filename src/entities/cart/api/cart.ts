@@ -83,8 +83,8 @@ export function getCart(userId: number) {
   return cartGet<CartResponse>(`/cart/${userId}`);
 }
 
-export function addToCart(userId: number, productId: string) {
-  return cartMutate("POST", `/cart/${userId}/items`, { productId }).then(
+export function addToCart(userId: number, productId: string, quantity: number = 1) {
+  return cartMutate("POST", `/cart/${userId}/items`, { productId, quantity }).then(
     (res) => res.json() as Promise<CartItemResponse>,
   );
 }
