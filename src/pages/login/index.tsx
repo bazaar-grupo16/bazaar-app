@@ -8,46 +8,111 @@ import {
   Dimensions,
   StatusBar,
   TextInput,
-  ScrollView
+  ScrollView,
+  Alert
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation";
+
 import { colors, typography, spacing } from "@/shared/styles/theme";
 import { FormButton } from "@/shared/ui/FormButton";
 
+import { loginUser, registerUser } from "@/entities/user";
+import { ApiError } from "@/shared/api";
+
 const HERO_IMAGE = "https://images.unsplash.com/photo-1548335684-7d082b06d74d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWJyYW50JTIwY29sb3JmdWwlMjBtYXJrZXQlMjBwcm9kdWN0cyUyMG92ZXJoZWFkfGVufDF8fHx8MTc3NTQ4MzI1Mnww&ixlib=rb-4.1.0&q=80&w=1080";
 
-const HARDCODED_EMAIL = "admin@bazaar.com";
-const HARDCODED_PASSWORD = "1234";
-
 type Tab = "login" | "register";
-
 const { height } = Dimensions.get("window");
 
 export function LoginPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Login">>();
   const [tab, setTab] = useState<Tab>("login");
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
-  function handleLogin() {
-    if (email === HARDCODED_EMAIL && password === HARDCODED_PASSWORD) {
+  // backend-login
+  async function handleLogin() {
+    if (!email || !password) {
+      setError("Por favor, completá todos los campos");
+      return;
+    }
+
+    try {
       setError("");
+      setIsLoading(true);
+
+      const response = await loginUser({ email, password });
+
+      console.log("¡Logueado con éxito! Token:", response.access_token);
+
       navigation.replace("Tabs");
-    } else {
-      setError("Credenciales incorrectas");
+
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+          setError("Email o contraseña incorrectos");
+        } else if (err.status === 422) {
+          setError("El formato del email no es válido");
+        } else {
+          setError(`Error del servidor (${err.status})`);
+        }
+      } else {
+        setError("Error de conexión. Revisá que el backend esté corriendo.");
+      }
+    } finally {
+      setIsLoading(false); // Apagamos el loader
     }
   }
 
-  function handleRegister() {
-    setError("");
+  // backend-register
+  async function handleRegister() {
+    if (!regName || !regEmail || !regPassword) {
+      setError("Por favor, completá todos los campos");
+      return;
+    }
+
+    try {
+      setError("");
+      setIsLoading(true);
+
+      await registerUser({
+        name: regName,
+        email: regEmail,
+        password: regPassword,
+      });
+
+      Alert.alert("¡Cuenta creada!", "Ya podés iniciar sesión con tus datos.");
+
+      setTab("login");
+      setEmail(regEmail);
+      setPassword("");
+
+    } catch (err: any) {
+
+          if (err instanceof ApiError) {
+            if (err.status === 400) {
+              setError("Ese email ya se encuentra registrado");
+            } else if (err.status === 422) {
+              setError("Email inválido o contraseña muy débil");
+            } else {
+              setError(`Error del servidor (${err.status})`);
+            }
+          } else {
+            setError("Error de conexión. Revisar Back");
+          }
+        } finally {
+          setIsLoading(false);
+        }
   }
 
   return (
