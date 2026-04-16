@@ -32,4 +32,6 @@ export type ProductListParams = {
   category?: string;
   sellerId?: string;
   includeInactive?: boolean;
+  sortBy?: "price" | "created_at" | "title";
+  order?: "asc" | "desc";
 };
