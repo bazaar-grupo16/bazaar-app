@@ -181,9 +181,7 @@ export function LoginPage() {
               </View>
 
               <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.label}>Contraseña</Text>
-                </View>
+                <Text style={styles.label}>Contraseña</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••"
