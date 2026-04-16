@@ -1,11 +1,14 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React, { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useProducts, type Product } from "@/entities/product";
+import { useAddToCart } from "@/entities/cart";
+import { ApiError } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { Button } from "@/shared/ui";
-import React from "react";
 
 type SearchNavigationProps = NativeStackNavigationProp<RootStackParamList, "Tabs">;
 
@@ -66,10 +69,50 @@ export function SearchPage() {
   );
 }
 
+type AddToCartFeedback = "idle" | "loading" | "success" | "error";
+
 function ProductCard({ product, onPress }: { product: Product; onPress: () => void }) {
   const firstImage = product.images?.[0];
   const isInactive = product.status === "inactive";
   const isOutOfStock = !isInactive && product.stock === 0;
+  const canAdd = !isInactive && !isOutOfStock;
+
+  const addToCart = useAddToCart(1001);
+  const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleAddToCart = useCallback(() => {
+    if (!canAdd) return;
+
+    setFeedback("loading");
+    setErrorMsg("");
+
+    addToCart.mutate({ productId: product.id }, {
+      onSuccess: () => {
+        setFeedback("success");
+        if (successTimerRef.current) clearTimeout(successTimerRef.current);
+        successTimerRef.current = setTimeout(() => setFeedback("idle"), 1500);
+      },
+      onError: (err) => {
+        setFeedback("error");
+        if (err instanceof ApiError) {
+          const detail = (err.details as { detail?: string })?.detail;
+          if (err.status === 422) {
+            setErrorMsg(detail ?? "Stock insuficiente");
+          } else if (err.status === 404) {
+            setErrorMsg("Producto no encontrado");
+          } else if (err.status === 503) {
+            setErrorMsg("Servicio no disponible");
+          } else {
+            setErrorMsg(detail ?? "Error al agregar al carrito");
+          }
+        } else {
+          setErrorMsg("Error de conexión");
+        }
+      },
+    });
+  }, [canAdd, addToCart, product.id]);
 
   return (
     <TouchableOpacity
@@ -114,6 +157,40 @@ function ProductCard({ product, onPress }: { product: Product; onPress: () => vo
             </Text>
           )}
         </View>
+
+        {/* Add to cart button */}
+        <TouchableOpacity
+          style={[
+            styles.addToCartButton,
+            !canAdd && styles.addToCartButtonDisabled,
+            feedback === "success" && styles.addToCartButtonSuccess,
+            feedback === "error" && styles.addToCartButtonError,
+          ]}
+          onPress={handleAddToCart}
+          disabled={!canAdd || feedback === "loading"}
+          activeOpacity={0.7}
+          accessibilityLabel={`Agregar ${product.title} al carrito`}
+        >
+          {feedback === "loading" ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : feedback === "success" ? (
+            <>
+              <Ionicons name="checkmark-circle" size={18} color={colors.white} />
+              <Text style={styles.addToCartText}>¡Agregado!</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="cart-outline" size={18} color={canAdd ? colors.white : colors.gray[500]} />
+              <Text style={[styles.addToCartText, !canAdd && styles.addToCartTextDisabled]}>
+                Agregar al carrito
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {feedback === "error" && errorMsg ? (
+          <Text style={styles.addToCartError}>{errorMsg}</Text>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -248,5 +325,38 @@ const styles = StyleSheet.create({
   inactiveText: {
     color: colors.gray[700],
     fontWeight: typography.weight.semibold,
+  },
+  addToCartButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    backgroundColor: colors.brand[500],
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  addToCartButtonDisabled: {
+    backgroundColor: colors.gray[100],
+  },
+  addToCartButtonSuccess: {
+    backgroundColor: "#16a34a",
+  },
+  addToCartButtonError: {
+    backgroundColor: colors.error,
+  },
+  addToCartText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
+  },
+  addToCartTextDisabled: {
+    color: colors.gray[500],
+  },
+  addToCartError: {
+    fontSize: 12,
+    color: colors.error,
+    marginTop: spacing.xs,
+    textAlign: "center",
   },
 });
