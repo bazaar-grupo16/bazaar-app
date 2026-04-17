@@ -1,11 +1,11 @@
 import { ApiError } from "@/shared/api";
 import type { CartItemResponse, CartResponse } from "../model/types";
 
-const CART_BASE_URL = process.env.EXPO_PUBLIC_CART_BASE_URL;
+const CART_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 function getCartBaseUrl() {
   if (!CART_BASE_URL) {
-    throw new Error("Missing EXPO_PUBLIC_CART_BASE_URL");
+    throw new Error("Missing EXPO_PUBLIC_API_BASE_URL");
   }
 
   return CART_BASE_URL.replace(/\/$/, "");
