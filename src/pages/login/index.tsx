@@ -193,6 +193,7 @@ export function LoginPage() {
                     placeholderTextColor={colors.gray[300]}
                     value={password}
                     onChangeText={setPassword}
+                    autoCapitalize="none"
                     secureTextEntry={!showPassword}
                   />
                   <TouchableOpacity
@@ -250,6 +251,7 @@ export function LoginPage() {
                     placeholderTextColor={colors.gray[300]}
                     value={regPassword}
                     onChangeText={setRegPassword}
+                    autoCapitalize="none"
                     secureTextEntry={!showRegPassword}
                   />
                   <TouchableOpacity
