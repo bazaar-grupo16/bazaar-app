@@ -1,4 +1,4 @@
-export type ProductStatus = "active" | "inactive";
+export type ProductStatus = "active" | "inactive" | "out_of_stock";
 
 export type Product = {
   id: string;

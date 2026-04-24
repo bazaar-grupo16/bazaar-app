@@ -52,7 +52,7 @@ export function SearchPage() {
     }
   }, [data, selectedCategory]);
 
-  const visibleProducts = (data?.data ?? []).filter((p) => p.stock > 0);
+  const visibleProducts = data?.data ?? [];
 
   const hasActiveFilter = !!searchQuery || !!selectedCategory;
 
@@ -198,7 +198,7 @@ type AddToCartFeedback = "idle" | "loading" | "success" | "error";
 export function ProductCard({ product, onPress }: { product: Product; onPress: () => void }) {
   const firstImage = product.images?.[0];
   const isInactive = product.status === "inactive";
-  const isOutOfStock = !isInactive && product.stock === 0;
+  const isOutOfStock = product.status === "out_of_stock";
   const canAdd = !isInactive && !isOutOfStock;
 
   const addToCart = useAddToCart(1001);
@@ -281,13 +281,6 @@ export function ProductCard({ product, onPress }: { product: Product; onPress: (
         </Text>
         <View style={styles.metaRow}>
           <Text style={styles.meta}>{product.category}</Text>
-          {isInactive ? (
-            <Text style={[styles.meta, styles.inactiveText]}>No disponible</Text>
-          ) : (
-            <Text style={[styles.meta, isOutOfStock && styles.outOfStock]}>
-              {product.stock > 0 ? `${product.stock} disponibles` : "Sin stock"}
-            </Text>
-          )}
         </View>
 
         <TouchableOpacity

@@ -79,9 +79,10 @@ export function ProductDetailPage() {
 type AddToCartFeedback = "idle" | "loading" | "success" | "error";
 
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
-  const isDisabled = product.status === "inactive";
-  const isOutOfStock = !isDisabled && product.stock === 0;
-  const canAddToCart = !isDisabled && product.stock > 0;
+  const isInactive = product.status === "inactive";
+  const isOutOfStock = product.status === "out_of_stock";
+  const isDisabled = isInactive;
+  const canAddToCart = !isInactive && !isOutOfStock;
 
   const [quantity, setQuantity] = useState(1);
 
