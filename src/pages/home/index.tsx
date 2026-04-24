@@ -19,7 +19,7 @@ export function HomePage() {
   const navigation = useNavigation<HomeNavProp>();
   const { data, isLoading } = useProducts({ limit: 6, sortBy: "created_at", order: "desc" });
 
-  const recentProducts = (data?.data ?? []).filter((p) => p.stock > 0);
+  const recentProducts = data?.data ?? [];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

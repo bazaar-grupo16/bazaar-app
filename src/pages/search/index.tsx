@@ -52,7 +52,7 @@ export function SearchPage() {
     }
   }, [data, selectedCategory]);
 
-  const visibleProducts = (data?.data ?? []).filter((p) => p.stock > 0);
+  const visibleProducts = data?.data ?? [];
 
   const hasActiveFilter = !!searchQuery || !!selectedCategory;
 
@@ -198,7 +198,7 @@ type AddToCartFeedback = "idle" | "loading" | "success" | "error";
 export function ProductCard({ product, onPress }: { product: Product; onPress: () => void }) {
   const firstImage = product.images?.[0];
   const isInactive = product.status === "inactive";
-  const isOutOfStock = !isInactive && product.stock === 0;
+  const isOutOfStock = product.status === "out_of_stock";
   const canAdd = !isInactive && !isOutOfStock;
 
   const addToCart = useAddToCart(1001);

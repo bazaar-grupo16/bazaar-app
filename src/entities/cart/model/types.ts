@@ -3,7 +3,7 @@ export type Price = {
   updatedAt: string;
 };
 
-export type CartItemStatus = "active" | "inactive";
+export type CartItemStatus = "active" | "inactive" | "out_of_stock";
 
 export type CartItem = {
   productId: string;
