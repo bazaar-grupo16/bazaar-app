@@ -73,6 +73,13 @@ export function HomePage() {
   const [sortOption, setSortOption] = useState<SortOption | null>(null);
   const [showSortOptions, setShowSortOptions] = useState(false);
 
+  // Price filter
+  const [minPriceText, setMinPriceText] = useState("");
+  const [maxPriceText, setMaxPriceText] = useState("");
+  const minPrice = minPriceText !== "" ? parseFloat(minPriceText) : undefined;
+  const maxPrice = maxPriceText !== "" ? parseFloat(maxPriceText) : undefined;
+  const hasPriceFilter = (minPrice !== undefined && !isNaN(minPrice)) || (maxPrice !== undefined && !isNaN(maxPrice));
+
   // Pagination
   const [queryOffset, setQueryOffset] = useState(0);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -125,6 +132,8 @@ export function HomePage() {
     ...(selectedCategory ? { category: selectedCategory } : {}),
     sortBy: effectiveSortBy,
     order: effectiveSortOrder,
+    ...(minPrice !== undefined && !isNaN(minPrice) ? { minPrice } : {}),
+    ...(maxPrice !== undefined && !isNaN(maxPrice) ? { maxPrice } : {}),
   });
 
   // Carousel — always top 5 most recent, ignores active filters
@@ -148,7 +157,7 @@ export function HomePage() {
 
   const hasMore     = allProducts.length < total;
   const isFirstLoad = isLoading && queryOffset === 0;
-  const hasSearchIntent = !!searchQuery || !!selectedCategory || !!sortOption;
+  const hasSearchIntent = !!searchQuery || !!selectedCategory || !!sortOption || hasPriceFilter;
   const hasInputSearch = !!searchQuery;
 
   const toggleFavorite = (id: string) =>
@@ -160,13 +169,21 @@ export function HomePage() {
 
   const loadMore = () => { if (hasMore && !isFetching) setQueryOffset((p) => p + PAGE_SIZE); };
 
-  // X en el buscador: limpia texto + categoría → vuelve a la vista general
+  // X en el buscador: solo limpia el texto de búsqueda
+  const clearSearch = () => {
+    setInputText("");
+    setSearchQuery("");
+  };
+
+  // "Limpiar filtros": resetea todo
   const clearAll = () => {
     setInputText("");
     setSearchQuery("");
     setSelectedCategory("");
     setSortOption(null);
     setShowSortOptions(false);
+    setMinPriceText("");
+    setMaxPriceText("");
   };
 
   // ── Results bar (inside ListHeaderComponent) ──────────────────────────────
@@ -247,9 +264,9 @@ export function HomePage() {
               autoCapitalize="none"
             />
 
-            {(inputText.length > 0 || hasSearchIntent) && (
+            {inputText.length > 0 && (
               <TouchableOpacity
-                onPress={clearAll}
+                onPress={clearSearch}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="close-circle" size={18} color={colors.gray[400]} />
@@ -257,42 +274,68 @@ export function HomePage() {
             )}
           </View>
           <TouchableOpacity
-            style={[styles.sortButton, !!sortOption && styles.sortButtonActive]}
+            style={[styles.sortButton, (!!sortOption || hasPriceFilter) && styles.sortButtonActive]}
             onPress={() => setShowSortOptions((prev) => !prev)}
             activeOpacity={0.75}
           >
             <Ionicons
-              name="options-outline"
+              name="swap-vertical-outline"
               size={20}
-              color={sortOption ? colors.brand[500] : colors.gray[500]}
+              color={(sortOption || hasPriceFilter) ? colors.brand[500] : colors.gray[500]}
             />
           </TouchableOpacity>
         </View>
 
         {showSortOptions && (
           <View style={styles.sortDropdown}>
+            <TouchableOpacity
+              style={[styles.sortOption, !sortOption && styles.sortOptionActive]}
+              onPress={() => setSortOption(null)}
+            >
+              <Text style={[styles.sortOptionText, !sortOption && styles.sortOptionTextActive]}>
+                Sin orden
+              </Text>
+            </TouchableOpacity>
             {SORT_OPTIONS.map((option) => (
               <TouchableOpacity
                 key={option.key}
-                style={[
-                  styles.sortOption,
-                  sortOption === option.key && styles.sortOptionActive,
-                ]}
-                onPress={() => {
-                  setSortOption(option.key);
-                  setShowSortOptions(false);
-                }}
+                style={[styles.sortOption, sortOption === option.key && styles.sortOptionActive]}
+                onPress={() => setSortOption(option.key)}
               >
-                <Text
-                  style={[
-                    styles.sortOptionText,
-                    sortOption === option.key && styles.sortOptionTextActive,
-                  ]}
-                >
+                <Text style={[styles.sortOptionText, sortOption === option.key && styles.sortOptionTextActive]}>
                   {option.label}
                 </Text>
               </TouchableOpacity>
             ))}
+            <View style={styles.sortDivider} />
+            <View style={styles.priceFilterSection}>
+              <Text style={styles.priceFilterLabel}>Precio</Text>
+              <View style={styles.priceRow}>
+                <View style={styles.priceInputWrapper}>
+                  <Text style={styles.priceInputLabel}>Mín.</Text>
+                  <TextInput
+                    style={styles.priceInput}
+                    placeholder="$0"
+                    placeholderTextColor={colors.gray[400]}
+                    keyboardType="numeric"
+                    value={minPriceText}
+                    onChangeText={setMinPriceText}
+                  />
+                </View>
+                <Text style={styles.priceSep}>—</Text>
+                <View style={styles.priceInputWrapper}>
+                  <Text style={styles.priceInputLabel}>Máx.</Text>
+                  <TextInput
+                    style={styles.priceInput}
+                    placeholder="∞"
+                    placeholderTextColor={colors.gray[400]}
+                    keyboardType="numeric"
+                    value={maxPriceText}
+                    onChangeText={setMaxPriceText}
+                  />
+                </View>
+              </View>
+            </View>
           </View>
         )}
 
@@ -648,5 +691,46 @@ const styles = StyleSheet.create({
   sortOptionTextActive: {
     color: colors.brand[500],
     fontWeight: typography.weight.semibold,
+  },
+  sortDivider: {
+    height: 1,
+    backgroundColor: colors.gray[200],
+    marginVertical: spacing.xs,
+  },
+  priceFilterSection: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  priceFilterLabel: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[700],
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  priceInputWrapper: {
+    flex: 1,
+    gap: 2,
+  },
+  priceInputLabel: {
+    fontSize: 11,
+    color: colors.gray[500],
+  },
+  priceInput: {
+    backgroundColor: colors.gray[100],
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontSize: typography.size.sm,
+    color: colors.gray[900],
+  },
+  priceSep: {
+    fontSize: typography.size.sm,
+    color: colors.gray[400],
+    marginTop: spacing.md,
   },
 });

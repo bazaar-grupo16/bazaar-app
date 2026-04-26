@@ -34,4 +34,6 @@ export type ProductListParams = {
   includeInactive?: boolean;
   sortBy?: "price" | "created_at" | "title";
   order?: "asc" | "desc";
+  minPrice?: number;
+  maxPrice?: number;
 };
