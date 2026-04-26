@@ -6,7 +6,7 @@ import { OrdersPage } from "@/pages/orders";
 import { PublishPage } from "@/pages/publish";
 import { CartPage } from "@/pages/cart";
 import { ProfilePage } from "@/pages/profile";
-import { colors, spacing, typography } from "@/shared/styles";
+import { colors, typography } from "@/shared/styles";
 
 export type TabsParamList = {
   Home: undefined;
@@ -18,19 +18,9 @@ export type TabsParamList = {
 
 const Tab = createBottomTabNavigator<TabsParamList>();
 
-const TAB_CONTENT_HEIGHT = 100;
-
-function PublishTabButton({
-  onPress,
-}: {
-  onPress: (() => void) | undefined;
-}) {
+function PublishTabButton({ onPress }: { onPress: (() => void) | undefined }) {
   return (
-    <TouchableOpacity
-      style={[styles.publishWrapper, { paddingBottom: spacing.xs }]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
+    <TouchableOpacity style={styles.publishWrapper} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.publishCircle}>
         <Ionicons name="add" size={28} color={colors.white} />
       </View>
@@ -48,12 +38,11 @@ export function TabsNavigator() {
         tabBarInactiveTintColor: colors.gray[400],
         tabBarLabelStyle: styles.tabLabel,
         tabBarStyle: {
-          height: TAB_CONTENT_HEIGHT,
-          paddingBottom: spacing.xs,
-          paddingTop: spacing.xs,
+          height: 82,
           borderTopWidth: 1,
           borderTopColor: colors.gray[200],
           backgroundColor: colors.white,
+          paddingTop: 8,
         },
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -75,9 +64,7 @@ export function TabsNavigator() {
           tabBarLabel: () => null,
           tabBarIcon: () => null,
           tabBarButton: ({ onPress }) => (
-            <PublishTabButton
-              onPress={onPress as (() => void) | undefined}
-            />
+            <PublishTabButton onPress={onPress as (() => void) | undefined} />
           ),
         }}
       />
@@ -96,8 +83,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    height: TAB_CONTENT_HEIGHT,
-    transform: [{ translateY: -30 }],
   },
   publishCircle: {
     width: 52,
@@ -106,12 +91,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand[500],
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 0,
   },
   publishLabel: {
     fontSize: 11,
     fontWeight: typography.weight.semibold,
     color: colors.gray[400],
-    marginTop: 2,
+    marginTop: 4,
   },
 });
