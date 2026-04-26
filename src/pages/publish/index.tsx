@@ -374,7 +374,7 @@ export function PublishPage() {
         </ScrollView>
 
         {/* Submit button */}
-        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
+        <View style={[styles.footer]}>
           <TouchableOpacity
             style={[styles.submitBtn, isPending && styles.submitBtnDisabled]}
             onPress={handleSubmit}
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.gray[200],
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
+    paddingVertical: spacing.md,
   },
   submitBtn: {
     backgroundColor: colors.brand[500],
