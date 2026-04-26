@@ -118,12 +118,12 @@ export async function apiPostForm<TResponse>(
     let details: unknown = null;
 
     try {
-      raw = await response.text(); // 👈 leer UNA sola vez
+      raw = await response.text();
 
       try {
-        details = raw ? JSON.parse(raw) : null; // intentar parsear
+        details = raw ? JSON.parse(raw) : null;
       } catch {
-        details = raw; // fallback a texto
+        details = raw;
       }
     } catch {
       details = null;
