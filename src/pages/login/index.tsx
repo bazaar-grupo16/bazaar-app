@@ -19,7 +19,7 @@ import { colors, typography, spacing } from "@/shared/styles/theme";
 import { FormButton } from "@/shared/ui/FormButton";
 
 import { loginUser, registerUser } from "@/entities/user";
-import { ApiError } from "@/shared/api";
+import { ApiError, setAuthToken } from "@/shared/api";
 
 const HERO_IMAGE = "https://images.unsplash.com/photo-1548335684-7d082b06d74d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWJyYW50JTIwY29sb3JmdWwlMjBtYXJrZXQlMjBwcm9kdWN0cyUyMG92ZXJoZWFkfGVufDF8fHx8MTc3NTQ4MzI1Mnww&ixlib=rb-4.1.0&q=80&w=1080";
 
@@ -52,9 +52,7 @@ export function LoginPage() {
       setIsLoading(true);
 
       const response = await loginUser({ email, password });
-
-      console.log("¡Logueado con éxito! Token:", response.access_token);
-
+      setAuthToken(response.access_token);
       navigation.replace("Tabs");
 
     } catch (err) {
