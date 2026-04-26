@@ -1,4 +1,4 @@
-import { apiGet } from "@/shared/api";
+import { apiGet, apiPostForm } from "@/shared/api";
 import type { ProductListParams, ProductListResponse, ProductResponse } from "../model/types";
 
 function toQueryString(params: ProductListParams) {
@@ -46,4 +46,8 @@ export function getProducts(params: ProductListParams = {}) {
 
 export function getProduct(productId: string) {
   return apiGet<ProductResponse>(`/catalog/products/${productId}`);
+}
+
+export function createProduct(formData: FormData) {
+  return apiPostForm<ProductResponse>("/catalog/products", formData);
 }

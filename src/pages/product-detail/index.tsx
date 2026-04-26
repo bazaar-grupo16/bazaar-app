@@ -1,18 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   LayoutAnimation,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,16 +21,22 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import { useProduct } from "@/entities/product";
 import type { Product } from "@/entities/product";
 import { useAddToCart } from "@/entities/cart";
-import { ApiError } from "@/shared/api";
+import { ApiError, apiGet } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { Button } from "@/shared/ui";
 
-const ORANGE_600 = "#F97316";
 const DESCRIPTION_PREVIEW_LENGTH = 140;
+
+interface SellerProfile {
+  id: string;
+  name: string;
+  email?: string;
+}
 
 type ProductDetailRouteProps = NativeStackScreenProps<RootStackParamList, "ProductDetail">["route"];
 type ProductDetailNavigationProps = NativeStackNavigationProp<RootStackParamList, "ProductDetail">;
@@ -49,7 +56,7 @@ export function ProductDetailPage() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centeredContainer}>
-          <ActivityIndicator size="large" color={ORANGE_600} />
+          <ActivityIndicator size="large" color={colors.brand[500]} />
           <Text style={styles.helperText}>Cargando producto...</Text>
         </View>
       </SafeAreaView>
@@ -60,11 +67,11 @@ export function ProductDetailPage() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.topBar}>
-          <IconButton icon="chevron-back" onPress={() => navigation.goBack()} />
+          <GlassButton icon="chevron-back" onPress={() => navigation.goBack()} />
         </View>
         <View style={styles.centeredContainer}>
-          <Text style={styles.title}>No se pudo cargar el producto</Text>
-          <Text style={styles.helperText}>El catálogo no pudo responder en este momento. Intentá de nuevo.</Text>
+          <Text style={styles.errorTitle}>No se pudo cargar el producto</Text>
+          <Text style={styles.helperText}>El catálogo no pudo responder. Intentá de nuevo.</Text>
           <Button onPress={() => void refetch()} loading={isRefetching}>
             Reintentar
           </Button>
@@ -79,12 +86,14 @@ export function ProductDetailPage() {
 type AddToCartFeedback = "idle" | "loading" | "success" | "error";
 
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
+  const insets = useSafeAreaInsets();
   const isInactive = product.status === "inactive";
   const isOutOfStock = product.status === "out_of_stock";
-  const isDisabled = isInactive;
   const canAddToCart = !isInactive && !isOutOfStock;
 
   const [quantity, setQuantity] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [sellerModalVisible, setSellerModalVisible] = useState(false);
 
   const addToCart = useAddToCart(1001);
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
@@ -93,134 +102,309 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
 
   const handleAddToCart = useCallback(() => {
     if (!canAddToCart) return;
-
     setFeedback("loading");
     setErrorMsg("");
-
-    addToCart.mutate({ productId: product.id, quantity }, {
-      onSuccess: () => {
-        setFeedback("success");
-        if (successTimerRef.current) clearTimeout(successTimerRef.current);
-        successTimerRef.current = setTimeout(() => setFeedback("idle"), 2000);
-      },
-      onError: (err) => {
-        setFeedback("error");
-        if (err instanceof ApiError) {
-          const detail = (err.details as { detail?: string })?.detail;
-          if (err.status === 422) {
-            setErrorMsg(detail ?? "Stock insuficiente");
-          } else if (err.status === 404) {
-            setErrorMsg("Producto no encontrado");
-          } else if (err.status === 503) {
-            setErrorMsg("Servicio no disponible");
+    addToCart.mutate(
+      { productId: product.id, quantity },
+      {
+        onSuccess: () => {
+          setFeedback("success");
+          if (successTimerRef.current) clearTimeout(successTimerRef.current);
+          successTimerRef.current = setTimeout(() => setFeedback("idle"), 2500);
+        },
+        onError: (err) => {
+          setFeedback("error");
+          if (err instanceof ApiError) {
+            const detail = (err.details as { detail?: string })?.detail;
+            if (err.status === 422) setErrorMsg("Stock insuficiente para la cantidad seleccionada");
+            else if (err.status === 404) setErrorMsg("Producto no encontrado");
+            else if (err.status === 503) setErrorMsg("Servicio no disponible");
+            else setErrorMsg(detail ?? "Error al agregar");
           } else {
-            setErrorMsg(detail ?? "Error al agregar");
+            setErrorMsg("Error de conexión");
           }
-        } else {
-          setErrorMsg("Error de conexión");
-        }
-      },
-    });
-  }, [canAddToCart, addToCart, product.id]);
+        },
+      }
+    );
+  }, [canAddToCart, addToCart, product.id, quantity]);
+
+  const handleShare = useCallback(async () => {
+    const deepLink = `http://bazaar.pib.ar/products/${product.id}`;
+    try {
+      await Share.share({
+        title: product.title,
+        message: `Mirá este producto 👇\n${product.title} — $${product.price.toFixed(2)}\n\n${deepLink}`,
+        url: deepLink,
+      });
+    } catch {
+      // user cancelled
+    }
+  }, [product.title, product.price, product.id]);
 
   function getButtonLabel() {
     if (feedback === "loading") return "Agregando...";
-    if (feedback === "success") return "¡Agregado! ✓";
+    if (feedback === "success") return "Agregado al carrito";
     if (feedback === "error") return errorMsg || "Error";
-    if (!canAddToCart) return isOutOfStock ? "Sin Stock" : "No Disponible";
-    return "Agregar al Carrito";
+    return "Agregar al carrito";
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Hero: image carousel with overlaid controls */}
         <View style={styles.hero}>
           <ProductImageCarousel images={product.images ?? []} title={product.title} />
-          <View style={styles.topBarOverlay}>
-            <IconButton icon="chevron-back" onPress={onBack} />
+
+          <View style={[styles.topBarOverlay, { top: insets.top + spacing.sm }]}>
+            <GlassButton icon="chevron-back" onPress={onBack} />
+            <View style={styles.topBarRight}>
+              <GlassButton
+                icon={isFavorite ? "heart" : "heart-outline"}
+                iconColor={isFavorite ? colors.brand[400] : colors.white}
+                onPress={() => setIsFavorite((v) => !v)}
+              />
+              <GlassButton
+                icon="share-outline"
+                onPress={() => {
+                  void handleShare();
+                }}
+              />
+            </View>
           </View>
-          <ProductBadge isDisabled={isDisabled} isOutOfStock={isOutOfStock} />
+
+          {(isInactive || isOutOfStock) && (
+            <ProductBadge isDisabled={isInactive} isOutOfStock={isOutOfStock} />
+          )}
         </View>
 
+        {/* Main content */}
         <View style={styles.content}>
-          <View style={styles.infoCard}>
-            <View style={styles.headingRow}>
-              <View style={styles.headingCopy}>
-                <Text style={styles.category}>{product.category}</Text>
-                <Text style={styles.productName}>{product.title}</Text>
+          {/* Category + stock badges + title + price */}
+          <View style={styles.infoSection}>
+            <View style={styles.badgeRow}>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeText}>{product.category}</Text>
               </View>
-              {!isDisabled ? (
-                <View style={styles.stockPill}>
+              {!isInactive && (
+                <View
+                  style={[
+                    styles.stockBadge,
+                    isOutOfStock ? styles.stockBadgeOutOfStock : styles.stockBadgeAvailable,
+                  ]}
+                >
                   <Ionicons
-                    name={product.stock > 0 ? "cube-outline" : "alert-circle-outline"}
-                    size={16}
-                    color={product.stock > 0 ? colors.gray[700] : colors.error}
+                    name={isOutOfStock ? "alert-circle-outline" : "cube-outline"}
+                    size={12}
+                    color={isOutOfStock ? "#92400e" : colors.gray[500]}
                   />
-                  <Text style={[styles.stockPillText, isOutOfStock && styles.outOfStockText]}>
-                    {product.stock > 0 ? `${product.stock} disponibles` : "Sin stock"}
+                  <Text
+                    style={[styles.stockBadgeText, isOutOfStock && styles.stockBadgeTextOutOfStock]}
+                  >
+                    {isOutOfStock ? "Sin stock" : `${product.stock} disponibles`}
                   </Text>
                 </View>
-              ) : null}
+              )}
             </View>
 
-            {isDisabled ? (
-              <View style={styles.unavailableMessage}>
-                <Ionicons name="information-circle-outline" size={18} color={colors.gray[700]} />
-                <Text style={styles.unavailableText}>Este producto no está disponible actualmente</Text>
-              </View>
-            ) : null}
+            <Text style={styles.productTitle}>{product.title}</Text>
+            <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
 
-            <ProductDescription description={product.description} />
+            {isInactive && (
+              <View style={styles.unavailableRow}>
+                <Ionicons name="information-circle-outline" size={16} color={colors.gray[400]} />
+                <Text style={styles.unavailableText}>Este producto no está disponible</Text>
+              </View>
+            )}
           </View>
 
-          <SellerCard sellerId={product.sellerId} />
+          <View style={styles.divider} />
+
+          {/* Seller row — taps to open modal */}
+          <TouchableOpacity
+            style={styles.sellerRow}
+            activeOpacity={0.7}
+            onPress={() => setSellerModalVisible(true)}
+          >
+            <View style={styles.sellerAvatar}>
+              <Text style={styles.sellerAvatarText}>
+                {product.sellerId.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.sellerInfo}>
+              <Text style={styles.sellerName}>Vendedor</Text>
+              <Text style={styles.sellerId}>ID: {product.sellerId}</Text>
+            </View>
+            <View style={styles.sellerChevron}>
+              <Text style={styles.sellerProfileText}>Ver perfil</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.brand[500]} />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          {/* Description */}
+          <ProductDescription description={product.description} />
+
+          <View style={styles.divider} />
+
+          {/* Trust badge */}
+          <View style={styles.trustBadge}>
+            <Ionicons name="shield-checkmark-outline" size={20} color="#16a34a" />
+            <View style={styles.trustCopy}>
+              <Text style={styles.trustTitle}>Compra protegida</Text>
+              <Text style={styles.trustText}>
+                Si el producto no llega o no es como se describe, te devolvemos el dinero.
+              </Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
 
+      {/* Action bar — flex child of SafeAreaView (not absolute) */}
       <View style={styles.actionBar}>
-        {!isDisabled ? (
-          <View style={styles.actionInfo}>
-            <Text style={styles.actionLabel}>Precio</Text>
-            <Text style={styles.actionPrice}>${(product.price * quantity).toFixed(2)}</Text>
-          </View>
-        ) : (
-          <Text style={styles.disabledActionText}>No disponible</Text>
-        )}
-        
-        {!isDisabled && !isOutOfStock && (
-          <View style={styles.quantityContainer}>
-            <TouchableOpacity
-              style={styles.quantityBtn}
-              onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-              disabled={quantity <= 1 || feedback === "loading"}
-            >
-              <Ionicons name="remove" size={18} color={quantity <= 1 ? colors.gray[300] : colors.gray[700]} />
-            </TouchableOpacity>
-            <Text style={styles.quantityText}>{quantity}</Text>
-            <TouchableOpacity
-              style={styles.quantityBtn}
-              onPress={() => setQuantity((q) => Math.min(product.stock, q + 1))}
-              disabled={quantity >= product.stock || feedback === "loading"}
-            >
-              <Ionicons name="add" size={18} color={quantity >= product.stock ? colors.gray[300] : colors.gray[700]} />
-            </TouchableOpacity>
-          </View>
-        )}
+        {canAddToCart ? (
+          <>
+            <View style={styles.quantityContainer}>
+              <TouchableOpacity
+                style={styles.quantityBtn}
+                onPress={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1 || feedback === "loading"}
+              >
+                <Ionicons
+                  name="remove"
+                  size={18}
+                  color={quantity <= 1 ? colors.gray[300] : colors.gray[700]}
+                />
+              </TouchableOpacity>
+              <Text style={styles.quantityText}>{quantity}</Text>
+              <TouchableOpacity
+                style={styles.quantityBtn}
+                onPress={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+                disabled={quantity >= product.stock || feedback === "loading"}
+              >
+                <Ionicons
+                  name="add"
+                  size={18}
+                  color={quantity >= product.stock ? colors.gray[300] : colors.gray[700]}
+                />
+              </TouchableOpacity>
+            </View>
 
-        <Button
-          style={[
-            styles.actionButton,
-            feedback === "success" && styles.actionButtonSuccess,
-            feedback === "error" && styles.actionButtonError,
-          ]}
-          disabled={!canAddToCart || feedback === "loading"}
-          loading={feedback === "loading"}
-          onPress={handleAddToCart}
-        >
-          {getButtonLabel()}
-        </Button>
+            <Button
+              style={[
+                styles.addButton,
+                feedback === "success" && styles.addButtonSuccess,
+                feedback === "error" && styles.addButtonError,
+              ]}
+              disabled={feedback === "loading"}
+              loading={feedback === "loading"}
+              onPress={handleAddToCart}
+            >
+              {getButtonLabel()}
+            </Button>
+          </>
+        ) : (
+          <Button style={styles.addButtonFull} disabled>
+            {isOutOfStock ? "Sin Stock" : "No Disponible"}
+          </Button>
+        )}
       </View>
+
+      <SellerProfileModal
+        sellerId={product.sellerId}
+        visible={sellerModalVisible}
+        onClose={() => setSellerModalVisible(false)}
+      />
     </SafeAreaView>
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function GlassButton({
+  icon,
+  iconColor = colors.white,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity style={styles.glassButton} activeOpacity={0.75} onPress={onPress}>
+      <Ionicons name={icon} size={22} color={iconColor} />
+    </TouchableOpacity>
+  );
+}
+
+function SellerProfileModal({
+  sellerId,
+  visible,
+  onClose,
+}: {
+  sellerId: string;
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["seller-profile", sellerId],
+    queryFn: () => apiGet<SellerProfile>(`/users/${sellerId}`),
+    enabled: visible,
+    retry: false,
+  });
+
+  const displayName = data?.name ?? "Vendedor";
+  const initial = displayName.charAt(0).toUpperCase();
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Perfil del vendedor</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+              <Ionicons name="close" size={22} color={colors.gray[500]} />
+            </TouchableOpacity>
+          </View>
+
+          {isLoading ? (
+            <View style={styles.modalLoading}>
+              <ActivityIndicator color={colors.brand[500]} />
+            </View>
+          ) : (
+            <>
+              <View style={styles.modalAvatarContainer}>
+                <View style={styles.modalAvatar}>
+                  <Text style={styles.modalAvatarText}>{initial}</Text>
+                </View>
+                <Text style={styles.modalSellerName}>{displayName}</Text>
+                <Text style={styles.modalSellerId}>ID: {sellerId}</Text>
+              </View>
+
+              <View style={styles.modalStats}>
+                <View style={styles.modalStat}>
+                  <Text style={styles.modalStatValue}>—</Text>
+                  <Text style={styles.modalStatLabel}>Ventas</Text>
+                </View>
+                <View style={styles.modalStatDivider} />
+                <View style={styles.modalStat}>
+                  <Text style={styles.modalStatValue}>—</Text>
+                  <Text style={styles.modalStatLabel}>Calificación</Text>
+                </View>
+                <View style={styles.modalStatDivider} />
+                <View style={styles.modalStat}>
+                  <Text style={styles.modalStatValue}>—</Text>
+                  <Text style={styles.modalStatLabel}>Miembro desde</Text>
+                </View>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -229,10 +413,9 @@ function ProductImageCarousel({ images, title }: { images: string[]; title: stri
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<string>>(null);
   const carouselImages = useMemo(() => (images.length > 0 ? images : [""]), [images]);
-  const heroWidth = width;
 
   function handleScrollEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / heroWidth);
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
     setActiveIndex(nextIndex);
   }
 
@@ -246,89 +429,61 @@ function ProductImageCarousel({ images, title }: { images: string[]; title: stri
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, index) => `${item || "placeholder"}-${index}`}
         renderItem={({ item }) => (
-          <View style={[styles.heroImageFrame, { width: heroWidth }]}>
+          <View style={[styles.heroImageFrame, { width }]}>
             {item ? (
               <Image source={{ uri: item }} style={styles.heroImage} resizeMode="cover" />
             ) : (
               <View style={styles.heroPlaceholder}>
-                <Ionicons name="image-outline" size={48} color={colors.gray[500]} />
+                <Ionicons name="image-outline" size={48} color={colors.gray[300]} />
                 <Text style={styles.heroPlaceholderText}>Sin imagen</Text>
               </View>
             )}
           </View>
         )}
         onMomentumScrollEnd={handleScrollEnd}
-        getItemLayout={(_, index) => ({
-          length: heroWidth,
-          offset: heroWidth * index,
-          index,
-        })}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         accessibilityLabel={`Galería de imágenes de ${title}`}
       />
 
-      {carouselImages.length > 1 ? (
+      {carouselImages.length > 1 && (
         <View style={styles.dotsRow}>
           {carouselImages.map((image, index) => (
-            <View
-              key={`${image}-${index}`}
-              style={[styles.dot, index === activeIndex && styles.activeDot]}
-            />
+            <View key={`dot-${index}`} style={[styles.dot, index === activeIndex && styles.activeDot]} />
           ))}
         </View>
-      ) : null}
+      )}
     </View>
   );
 }
 
 function ProductDescription({ description }: { description: string }) {
   const [expanded, setExpanded] = useState(false);
-  const isLongDescription = description.length > DESCRIPTION_PREVIEW_LENGTH;
-  const visibleDescription =
-    expanded || !isLongDescription
+  const isLong = description.length > DESCRIPTION_PREVIEW_LENGTH;
+  const visible =
+    expanded || !isLong
       ? description
       : `${description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trim()}...`;
 
-  function toggleDescription() {
+  function toggle() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded((current) => !current);
+    setExpanded((v) => !v);
   }
 
   return (
     <View style={styles.descriptionBlock}>
       <Text style={styles.sectionTitle}>Descripción</Text>
-      <Text style={styles.description}>{visibleDescription}</Text>
-      {isLongDescription ? (
-        <TouchableOpacity onPress={toggleDescription} activeOpacity={0.75}>
+      <Text style={styles.descriptionText}>{visible}</Text>
+      {isLong && (
+        <TouchableOpacity onPress={toggle} activeOpacity={0.75}>
           <Text style={styles.readMore}>{expanded ? "Ver menos" : "Ver más"}</Text>
         </TouchableOpacity>
-      ) : null}
-    </View>
-  );
-}
-
-function SellerCard({ sellerId }: { sellerId: string }) {
-  return (
-    <View style={styles.sellerCard}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>B</Text>
-      </View>
-      <View style={styles.sellerCopy}>
-        <Text style={styles.sellerName}>Vendedor Bazaar</Text>
-        <View style={styles.sellerLocationRow}>
-          <Ionicons name="location-outline" size={16} color={colors.gray[500]} />
-          <Text style={styles.sellerLocation}>Ubicación no disponible</Text>
-        </View>
-        <Text style={styles.sellerId}>ID vendedor: {sellerId}</Text>
-      </View>
+      )}
     </View>
   );
 }
 
 function ProductBadge({ isDisabled, isOutOfStock }: { isDisabled: boolean; isOutOfStock: boolean }) {
-  if (!isDisabled && !isOutOfStock) {
-    return null;
-  }
-
+  if (!isDisabled && !isOutOfStock) return null;
   return (
     <View style={[styles.badge, isDisabled ? styles.disabledBadge : styles.outOfStockBadge]}>
       <Text style={[styles.badgeText, isDisabled ? styles.disabledBadgeText : styles.outOfStockBadgeText]}>
@@ -338,13 +493,7 @@ function ProductBadge({ isDisabled, isOutOfStock }: { isDisabled: boolean; isOut
   );
 }
 
-function IconButton({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.iconButton} activeOpacity={0.75} onPress={onPress}>
-      <Ionicons name={icon} size={24} color={colors.gray[900]} />
-    </TouchableOpacity>
-  );
-}
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -357,29 +506,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.md,
     padding: spacing.xl,
-    backgroundColor: colors.white,
   },
   helperText: {
-    fontSize: typography.size.md,
-    color: colors.gray[700],
+    fontSize: typography.size.sm,
+    color: colors.gray[500],
     textAlign: "center",
   },
-  title: {
-    fontSize: typography.size.xl,
+  errorTitle: {
+    fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,
     color: colors.gray[900],
     textAlign: "center",
   },
+  topBar: {
+    padding: spacing.md,
+  },
+
+  // ── Scroll content ──
   scrollContent: {
-    paddingBottom: 116,
+    paddingBottom: spacing.lg,
     backgroundColor: colors.gray[50],
   },
+
+  // ── Hero ──
   hero: {
     position: "relative",
     backgroundColor: colors.gray[100],
   },
   heroImageFrame: {
-    height: 360,
+    height: 320,
     backgroundColor: colors.gray[100],
   },
   heroImage: {
@@ -393,43 +548,48 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   heroPlaceholderText: {
-    fontSize: typography.size.md,
-    color: colors.gray[500],
-  },
-  topBar: {
-    padding: spacing.md,
+    fontSize: typography.size.sm,
+    color: colors.gray[400],
   },
   topBarOverlay: {
     position: "absolute",
     top: spacing.md,
     left: spacing.md,
+    right: spacing.md,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  iconButton: {
-    width: 44,
-    height: 44,
+  topBarRight: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  glassButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.32)",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: radius.md,
-    backgroundColor: "rgba(255, 255, 255, 0.92)",
   },
   dotsRow: {
     position: "absolute",
-    right: 0,
-    bottom: spacing.md,
+    bottom: spacing.sm,
     left: 0,
+    right: 0,
     flexDirection: "row",
     justifyContent: "center",
     gap: spacing.xs,
   },
   dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.58)",
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.45)",
   },
   activeDot: {
-    width: 20,
-    backgroundColor: ORANGE_600,
+    width: 18,
+    backgroundColor: colors.brand[400],
   },
   badge: {
     position: "absolute",
@@ -437,7 +597,7 @@ const styles = StyleSheet.create({
     top: spacing.md,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   outOfStockBadge: {
     backgroundColor: "#FEF3C7",
@@ -455,162 +615,180 @@ const styles = StyleSheet.create({
   disabledBadgeText: {
     color: colors.white,
   },
+
+  // ── Content ──
   content: {
-    gap: spacing.md,
     padding: spacing.md,
-  },
-  infoCard: {
     gap: spacing.md,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
     backgroundColor: colors.white,
   },
-  headingRow: {
+  infoSection: {
+    gap: spacing.sm,
+  },
+  badgeRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.md,
-    justifyContent: "space-between",
+    gap: spacing.sm,
+    flexWrap: "wrap",
   },
-  headingCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  category: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.semibold,
-    color: ORANGE_600,
-    textTransform: "uppercase",
-  },
-  productName: {
-    fontSize: typography.size.xxl,
-    fontWeight: typography.weight.bold,
-    color: colors.gray[900],
-  },
-  stockPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
+  categoryBadge: {
     borderRadius: radius.md,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 4,
+    backgroundColor: colors.brand[50],
+  },
+  categoryBadgeText: {
+    fontSize: 11,
+    fontWeight: typography.weight.bold,
+    color: colors.brand[600],
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  stockBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  stockBadgeAvailable: {
     backgroundColor: colors.gray[100],
   },
-  stockPillText: {
-    fontSize: typography.size.sm,
+  stockBadgeOutOfStock: {
+    backgroundColor: "#FEF3C7",
+  },
+  stockBadgeText: {
+    fontSize: 11,
     fontWeight: typography.weight.semibold,
     color: colors.gray[700],
   },
-  outOfStockText: {
-    color: colors.error,
+  stockBadgeTextOutOfStock: {
+    color: "#92400e",
   },
-  unavailableMessage: {
+  productTitle: {
+    fontSize: 20,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+    lineHeight: 26,
+  },
+  productPrice: {
+    fontSize: 28,
+    fontWeight: typography.weight.bold,
+    color: colors.brand[500],
+    letterSpacing: -0.5,
+  },
+  unavailableRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    backgroundColor: colors.gray[100],
+    gap: spacing.xs,
   },
   unavailableText: {
     flex: 1,
-    fontSize: typography.size.md,
-    color: colors.gray[700],
+    fontSize: typography.size.sm,
+    color: colors.gray[400],
   },
+  divider: {
+    height: 1,
+    backgroundColor: colors.gray[100],
+  },
+
+  // ── Seller ──
+  sellerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  sellerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.brand[300],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sellerAvatarText: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+  },
+  sellerInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  sellerName: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+  },
+  sellerId: {
+    fontSize: 12,
+    color: colors.gray[400],
+  },
+  sellerChevron: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  sellerProfileText: {
+    fontSize: 13,
+    fontWeight: typography.weight.semibold,
+    color: colors.brand[500],
+  },
+
+  // ── Description ──
   descriptionBlock: {
     gap: spacing.sm,
   },
   sectionTitle: {
-    fontSize: typography.size.md,
+    fontSize: typography.size.sm,
     fontWeight: typography.weight.bold,
     color: colors.gray[900],
   },
-  description: {
-    fontSize: typography.size.md,
-    lineHeight: 23,
-    color: colors.gray[700],
-  },
-  readMore: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
-    color: ORANGE_600,
-  },
-  sellerCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    backgroundColor: colors.white,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.md,
-    backgroundColor: ORANGE_600,
-  },
-  avatarText: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.bold,
-    color: colors.white,
-  },
-  sellerCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  sellerName: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.bold,
-    color: colors.gray[900],
-  },
-  sellerLocationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  sellerLocation: {
+  descriptionText: {
     fontSize: typography.size.sm,
-    color: colors.gray[700],
-  },
-  sellerId: {
-    fontSize: typography.size.sm,
+    lineHeight: 22,
     color: colors.gray[500],
   },
+  readMore: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.brand[500],
+  },
+
+  // ── Trust badge ──
+  trustBadge: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    backgroundColor: "#f0fdf4",
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  trustCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  trustTitle: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+    color: "#166534",
+  },
+  trustText: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#15803d",
+  },
+
+  // ── Action bar ──
   actionBar: {
-    position: "absolute",
-    right: 0,
-    bottom: 0,
-    left: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.gray[100],
-    padding: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
     backgroundColor: colors.white,
-  },
-  actionLabel: {
-    fontSize: typography.size.sm,
-    color: colors.gray[500],
-  },
-  actionPrice: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.bold,
-    color: colors.gray[900],
-  },
-  disabledActionText: {
-    flex: 1,
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
-    color: colors.gray[700],
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: ORANGE_600,
-  },
-  actionInfo: {
-    minWidth: 80,
   },
   quantityContainer: {
     flexDirection: "row",
@@ -618,24 +796,124 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[50],
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.gray[300],
+    borderColor: colors.gray[200],
   },
   quantityBtn: {
-    padding: spacing.xs,
+    width: 40,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
   },
   quantityText: {
     fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
+    fontWeight: typography.weight.bold,
     color: colors.gray[900],
-    minWidth: 24,
+    minWidth: 28,
     textAlign: "center",
   },
-  actionButtonSuccess: {
-    backgroundColor: "#16a34a",
+  addButton: {
+    flex: 1,
+    backgroundColor: colors.brand[500],
   },
-  actionButtonError: {
+  addButtonFull: {
+    flex: 1,
+  },
+  addButtonSuccess: {
+    backgroundColor: colors.brand[600],
+  },
+  addButtonError: {
     backgroundColor: colors.error,
+  },
+
+  // ── Seller modal ──
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalSheet: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.gray[200],
+    alignSelf: "center",
+    marginBottom: spacing.xs,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+  },
+  modalLoading: {
+    paddingVertical: spacing.xl,
+    alignItems: "center",
+  },
+  modalAvatarContainer: {
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+  },
+  modalAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.brand[300],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalAvatarText: {
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+  },
+  modalSellerName: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+  },
+  modalSellerId: {
+    fontSize: typography.size.sm,
+    color: colors.gray[400],
+  },
+  modalStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: colors.gray[50],
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  modalStat: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  modalStatValue: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+  },
+  modalStatLabel: {
+    fontSize: 11,
+    color: colors.gray[400],
+  },
+  modalStatDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: colors.gray[200],
   },
 });

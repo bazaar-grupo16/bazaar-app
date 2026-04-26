@@ -225,7 +225,7 @@ export function ProductCard({ product, onPress }: { product: Product; onPress: (
           if (err instanceof ApiError) {
             const detail = (err.details as { detail?: string })?.detail;
             if (err.status === 422) {
-              setErrorMsg(detail ?? "Stock insuficiente");
+              setErrorMsg("Stock insuficiente");
             } else if (err.status === 404) {
               setErrorMsg("Producto no encontrado");
             } else if (err.status === 503) {

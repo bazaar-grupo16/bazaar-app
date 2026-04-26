@@ -1,5 +1,15 @@
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+let _authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  _authToken = token;
+}
+
+function authHeader(): Record<string, string> {
+  return _authToken ? { Authorization: `Bearer ${_authToken}` } : {};
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -29,6 +39,7 @@ export async function apiGet<TResponse>(path: string): Promise<TResponse> {
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
+      ...authHeader(),
     },
   });
 
@@ -42,11 +53,7 @@ export async function apiGet<TResponse>(path: string): Promise<TResponse> {
     }
 
     if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed", {
-        url,
-        status: response.status,
-        details,
-      });
+      console.warn("API request failed", { url, status: response.status, details });
     }
 
     throw new ApiError(response.statusText, response.status, details);
@@ -64,8 +71,9 @@ export async function apiPost<TResponse, TBody = unknown>(
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      "Accept": "application/json",
+      Accept: "application/json",
       "Content-Type": "application/json",
+      ...authHeader(),
     },
     body: JSON.stringify(body),
   });
@@ -80,11 +88,42 @@ export async function apiPost<TResponse, TBody = unknown>(
     }
 
     if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed (POST)", {
-        url,
-        status: response.status,
-        details,
-      });
+      console.warn("API request failed (POST)", { url, status: response.status, details });
+    }
+
+    throw new ApiError(response.statusText, response.status, details);
+  }
+
+  return response.json() as Promise<TResponse>;
+}
+
+export async function apiPostForm<TResponse>(
+  path: string,
+  formData: FormData
+): Promise<TResponse> {
+  const url = buildUrl(path);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      // No Content-Type: fetch sets multipart/form-data with boundary automatically
+      Accept: "application/json",
+      ...authHeader(),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let details: unknown;
+
+    try {
+      details = await response.json();
+    } catch {
+      details = await response.text();
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("API request failed (POST form)", { url, status: response.status, details });
     }
 
     throw new ApiError(response.statusText, response.status, details);
