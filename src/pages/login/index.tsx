@@ -17,6 +17,7 @@ import type { RootStackParamList } from "@/navigation";
 
 import { colors, typography, spacing } from "@/shared/styles/theme";
 import { FormButton } from "@/shared/ui/FormButton";
+import { Ionicons } from '@expo/vector-icons';
 
 import { loginUser, registerUser } from "@/entities/user";
 import { ApiError, setAuthToken } from "@/shared/api";
@@ -39,6 +40,9 @@ export function LoginPage() {
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
   // backend-login
   async function handleLogin() {
@@ -68,7 +72,7 @@ export function LoginPage() {
         setError("Error de conexión. Revisá que el backend esté corriendo.");
       }
     } finally {
-      setIsLoading(false); // Apagamos el loader
+      setIsLoading(false);
     }
   }
 
@@ -180,14 +184,28 @@ export function LoginPage() {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Contraseña</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.gray[300]}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
+                <View style={styles.passwordWrapper}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.gray[300]}
+                    value={password}
+                    onChangeText={setPassword}
+                    autoCapitalize="none"
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity
+                      style={styles.eyeButton}
+                      onPress={() => setShowPassword(!showPassword)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-off-outline" : "eye-outline"}
+                        size={22}
+                        color={colors.gray[500]}
+                      />
+                    </TouchableOpacity>
+                </View>    
               </View>
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -224,14 +242,28 @@ export function LoginPage() {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Contraseña</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.gray[300]}
-                  value={regPassword}
-                  onChangeText={setRegPassword}
-                  secureTextEntry
-                />
+                <View style={styles.passwordWrapper}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.gray[300]}
+                    value={regPassword}
+                    onChangeText={setRegPassword}
+                    autoCapitalize="none"
+                    secureTextEntry={!showRegPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowRegPassword(!showRegPassword)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={showRegPassword ? "eye-off-outline" : "eye-outline"}
+                      size={22}
+                      color={colors.gray[500]}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -389,6 +421,26 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: typography.size.md,
     color: colors.gray[900],
+  },
+  passwordWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray[50],
+    borderWidth: 1,
+    borderColor: colors.gray[100],
+    borderRadius: 16,
+    paddingHorizontal: spacing.md,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: typography.size.md,
+    color: colors.gray[900],
+  },
+  eyeButton: {
+    paddingLeft: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorText: {
     color: colors.error,
