@@ -114,12 +114,19 @@ export async function apiPostForm<TResponse>(
   });
 
   if (!response.ok) {
-    let details: unknown;
+    let raw: string | null = null;
+    let details: unknown = null;
 
     try {
-      details = await response.json();
+      raw = await response.text(); // 👈 leer UNA sola vez
+
+      try {
+        details = raw ? JSON.parse(raw) : null; // intentar parsear
+      } catch {
+        details = raw; // fallback a texto
+      }
     } catch {
-      details = await response.text();
+      details = null;
     }
 
     if (process.env.NODE_ENV !== "production") {
