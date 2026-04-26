@@ -28,7 +28,7 @@ type HomeNavProp = NativeStackNavigationProp<RootStackParamList, "Tabs">;
 const SCREEN_W = Dimensions.get("window").width;
 
 /** Cambiar este valor para probar distintos tamaños de página */
-const PAGE_SIZE = 2;
+const PAGE_SIZE = 20;
 
 const GRID_CARD_W = (SCREEN_W - spacing.md * 2 - spacing.sm) / 2;
 const CAROUSEL_W  = SCREEN_W - spacing.md * 2;
