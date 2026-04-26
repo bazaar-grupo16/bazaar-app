@@ -2,6 +2,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
+import { NotificationsPanel } from "./NotificationsPanel";
 import {
   ActivityIndicator,
   Dimensions,
@@ -76,6 +77,9 @@ export function HomePage() {
   const [queryOffset, setQueryOffset] = useState(0);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [total, setTotal]             = useState(0);
+
+  // Notifications panel
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Favorites (session-local)
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -223,7 +227,7 @@ export function HomePage() {
               <Text style={styles.greetingName}>{USER_NAME} 👋</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.bellButton} activeOpacity={0.7} onPress={() => setNotificationsOpen(true)}>
             <Ionicons name="notifications-outline" size={22} color={colors.gray[700]} />
           </TouchableOpacity>
         </View>
@@ -359,6 +363,11 @@ export function HomePage() {
           )}
         />
       )}
+
+      <NotificationsPanel
+        visible={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+      />
     </View>
   );
 }
