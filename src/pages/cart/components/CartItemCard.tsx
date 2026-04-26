@@ -21,7 +21,7 @@ export function CartItemCard({
   const unitPrice = parseFloat(item.unitPrice.value);
   const lineTotal = (unitPrice * item.quantity).toFixed(2);
   const isInactive = item.status === "inactive";
-  const isOutOfStock = !isInactive && item.stock === 0;
+  const isOutOfStock = item.status === "out_of_stock";
   const hasIssue = isInactive || isOutOfStock;
 
   return (

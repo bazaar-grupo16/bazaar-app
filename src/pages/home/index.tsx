@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
@@ -60,6 +61,7 @@ const SORT_OPTIONS: Array<{ key: SortOption; label: string; sortBy: SortField; o
 
 export function HomePage() {
   const navigation = useNavigation<HomeNavProp>();
+  const insets = useSafeAreaInsets();
 
   // Filters
   const [inputText, setInputText]               = useState("");
