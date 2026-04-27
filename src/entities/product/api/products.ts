@@ -36,6 +36,14 @@ function toQueryString(params: ProductListParams) {
     searchParams.set("order", params.order);
   }
 
+  if (params.minPrice !== undefined) {
+    searchParams.set("min_price", String(params.minPrice));
+  }
+
+  if (params.maxPrice !== undefined) {
+    searchParams.set("max_price", String(params.maxPrice));
+  }
+
   const queryString = searchParams.toString();
   return queryString ? `?${queryString}` : "";
 }

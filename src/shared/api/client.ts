@@ -43,23 +43,23 @@ export async function apiGet<TResponse>(path: string): Promise<TResponse> {
     },
   });
 
-  if (!response.ok) {
-    let details: unknown;
+  let data: any;
 
-    try {
-      details = await response.json();
-    } catch {
-      details = await response.text();
-    }
-
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed", { url, status: response.status, details });
-    }
-
-    throw new ApiError(response.statusText, response.status, details);
+  try {
+    data = await response.json();
+  } catch {
+    data = await response.text();
   }
 
-  return response.json() as Promise<TResponse>;
+  if (!response.ok) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("API request failed", { url, status: response.status, details: data });
+    }
+
+    throw new ApiError(response.statusText, response.status, data);
+  }
+
+  return data as TResponse;
 }
 
 export async function apiPost<TResponse, TBody = unknown>(
