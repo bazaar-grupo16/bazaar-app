@@ -24,7 +24,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useProduct } from "@/entities/product";
 import type { Product } from "@/entities/product";
-import { useAddToCart } from "@/entities/cart";
+import { useAddToCart, useCart } from "@/entities/cart";
 import { ApiError, apiGet } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
@@ -89,16 +89,25 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const insets = useSafeAreaInsets();
   const isInactive = product.status === "inactive";
   const isOutOfStock = product.status === "out_of_stock";
-  const canAddToCart = !isInactive && !isOutOfStock;
 
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
   const [sellerModalVisible, setSellerModalVisible] = useState(false);
 
+  const { data: cartData } = useCart(1001);
+  const cartQty = cartData?.data.items.find((i) => i.productId === product.id)?.quantity ?? 0;
+  const maxToAdd = Math.max(0, product.stock - cartQty);
+  const canAddToCart = !isInactive && !isOutOfStock && maxToAdd > 0;
+
   const addToCart = useAddToCart(1001);
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const scheduleClear = (delay: number) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setFeedback("idle"), delay);
+  };
 
   const handleAddToCart = useCallback(() => {
     if (!canAddToCart) return;
@@ -109,8 +118,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
       {
         onSuccess: () => {
           setFeedback("success");
-          if (successTimerRef.current) clearTimeout(successTimerRef.current);
-          successTimerRef.current = setTimeout(() => setFeedback("idle"), 2500);
+          scheduleClear(2500);
         },
         onError: (err) => {
           setFeedback("error");
@@ -123,6 +131,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
           } else {
             setErrorMsg("Error de conexión");
           }
+          scheduleClear(3000);
         },
       }
     );
@@ -164,7 +173,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
                 onPress={() => setIsFavorite((v) => !v)}
               />
               <GlassButton
-                icon="share-outline"
+                icon="share-social-outline"
                 onPress={() => {
                   void handleShare();
                 }}
@@ -279,13 +288,13 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
               <Text style={styles.quantityText}>{quantity}</Text>
               <TouchableOpacity
                 style={styles.quantityBtn}
-                onPress={() => setQuantity((q) => Math.min(product.stock, q + 1))}
-                disabled={quantity >= product.stock || feedback === "loading"}
+                onPress={() => setQuantity((q) => Math.min(maxToAdd, q + 1))}
+                disabled={quantity >= maxToAdd || feedback === "loading"}
               >
                 <Ionicons
                   name="add"
                   size={18}
-                  color={quantity >= product.stock ? colors.gray[300] : colors.gray[700]}
+                  color={quantity >= maxToAdd ? colors.gray[300] : colors.gray[700]}
                 />
               </TouchableOpacity>
             </View>
@@ -305,7 +314,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
           </>
         ) : (
           <Button style={styles.addButtonFull} disabled>
-            {isOutOfStock ? "Sin Stock" : "No Disponible"}
+            {isInactive ? "No disponible" : isOutOfStock ? "Sin stock" : "Ya tenés el máximo en el carrito"}
           </Button>
         )}
       </View>
@@ -411,6 +420,7 @@ function SellerProfileModal({
 function ProductImageCarousel({ images, title }: { images: string[]; title: string }) {
   const { width } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [fullImageUri, setFullImageUri] = useState<string | null>(null);
   const listRef = useRef<FlatList<string>>(null);
   const carouselImages = useMemo(() => (images.length > 0 ? images : [""]), [images]);
 
@@ -421,6 +431,19 @@ function ProductImageCarousel({ images, title }: { images: string[]; title: stri
 
   return (
     <View>
+      <Modal visible={fullImageUri !== null} transparent animationType="fade" onRequestClose={() => setFullImageUri(null)}>
+        <View style={styles.imageModalBg}>
+          <Image source={{ uri: fullImageUri! }} style={styles.imageModalFull} resizeMode="contain" />
+          <TouchableOpacity
+            style={styles.imageModalClose}
+            onPress={() => setFullImageUri(null)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="close" size={26} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
       <FlatList
         ref={listRef}
         data={carouselImages}
@@ -429,7 +452,11 @@ function ProductImageCarousel({ images, title }: { images: string[]; title: stri
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, index) => `${item || "placeholder"}-${index}`}
         renderItem={({ item }) => (
-          <View style={[styles.heroImageFrame, { width }]}>
+          <TouchableOpacity
+            style={[styles.heroImageFrame, { width }]}
+            activeOpacity={item ? 0.85 : 1}
+            onPress={() => { if (item) setFullImageUri(item); }}
+          >
             {item ? (
               <Image source={{ uri: item }} style={styles.heroImage} resizeMode="cover" />
             ) : (
@@ -438,7 +465,7 @@ function ProductImageCarousel({ images, title }: { images: string[]; title: stri
                 <Text style={styles.heroPlaceholderText}>Sin imagen</Text>
               </View>
             )}
-          </View>
+          </TouchableOpacity>
         )}
         onMomentumScrollEnd={handleScrollEnd}
         getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
@@ -910,6 +937,27 @@ const styles = StyleSheet.create({
   modalStatLabel: {
     fontSize: 11,
     color: colors.gray[400],
+  },
+  imageModalBg: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.76)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageModalFull: {
+    width: "100%",
+    height: "100%",
+  },
+  imageModalClose: {
+    position: "absolute",
+    top: 52,
+    right: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalStatDivider: {
     width: 1,
