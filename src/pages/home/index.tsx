@@ -34,8 +34,8 @@ const GRID_CARD_W = (SCREEN_W - spacing.md * 2 - spacing.sm) / 2;
 const CAROUSEL_W  = SCREEN_W - spacing.md * 2;
 
 // TODO: reemplazar con datos del servicio de perfil
-const USER_NAME    = "Agustín";
-const USER_INITIAL = "A";
+const USER_NAME    = "user_name";
+const USER_INITIAL = "U";
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
 
@@ -232,7 +232,7 @@ export function HomePage() {
   return (
     <View style={styles.container}>
       {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }, showSortOptions && { zIndex: 10 }]}>
         {/* Greeting */}
         <View style={styles.greetingRow}>
           <View style={styles.greetingLeft}>
@@ -359,6 +359,15 @@ export function HomePage() {
         </ScrollView>
       </View>
 
+      {/* Overlay para cerrar el dropdown al tocar fuera */}
+      {showSortOptions && (
+        <TouchableOpacity
+          style={[StyleSheet.absoluteFillObject, { zIndex: 5 }]}
+          onPress={() => setShowSortOptions(false)}
+          activeOpacity={1}
+        />
+      )}
+
       {/* ── Content ── */}
       {isFirstLoad ? (
         <View style={styles.centered}>
@@ -374,6 +383,7 @@ export function HomePage() {
           columnWrapperStyle={styles.columnWrapper}
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
+          onScrollBeginDrag={() => setShowSortOptions(false)}
           ListHeaderComponent={listHeader}
           ListFooterComponent={
             isFetching && queryOffset > 0 ? (
@@ -522,6 +532,14 @@ const carouselStyles = StyleSheet.create({
   dot: { height: 6, borderRadius: 3 },
   dotActive: { width: 16, backgroundColor: colors.brand[500] },
   dotInactive: { width: 6, backgroundColor: colors.gray[300] },
+  modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.95)", alignItems: "center", justifyContent: "center" },
+  fullImage: { width: "100%", height: "100%" },
+  modalClose: {
+    position: "absolute", top: 48, right: 20,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center", justifyContent: "center",
+  },
 });
 
 const styles = StyleSheet.create({
