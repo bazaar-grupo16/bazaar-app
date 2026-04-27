@@ -99,6 +99,10 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const maxToAdd = Math.max(0, product.stock - cartQty);
   const canAddToCart = !isInactive && !isOutOfStock && maxToAdd > 0;
 
+  useEffect(() => {
+    if (maxToAdd > 0 && quantity > maxToAdd) setQuantity(maxToAdd);
+  }, [maxToAdd, quantity]);
+
   const addToCart = useAddToCart(1001);
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
   const [errorMsg, setErrorMsg] = useState("");
