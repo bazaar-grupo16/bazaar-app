@@ -114,12 +114,19 @@ export async function apiPostForm<TResponse>(
   });
 
   if (!response.ok) {
-    let details: unknown;
+    let raw: string | null = null;
+    let details: unknown = null;
 
     try {
-      details = await response.json();
+      raw = await response.text();
+
+      try {
+        details = raw ? JSON.parse(raw) : null;
+      } catch {
+        details = raw;
+      }
     } catch {
-      details = await response.text();
+      details = null;
     }
 
     if (process.env.NODE_ENV !== "production") {
