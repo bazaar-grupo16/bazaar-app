@@ -9,7 +9,8 @@ import {
   StatusBar,
   TextInput,
   ScrollView,
-  Alert
+  Alert,
+  Modal
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -19,8 +20,10 @@ import { colors, typography, spacing } from "@/shared/styles/theme";
 import { FormButton } from "@/shared/ui/FormButton";
 import { Ionicons } from '@expo/vector-icons';
 
-import { loginUser, registerUser } from "@/entities/user";
+import { loginUser, registerUser,sendForgotPasswordEmail } from "@/entities/user";
 import { ApiError, setAuthToken } from "@/shared/api";
+import { Button } from "@/shared/ui/Button";
+
 
 const HERO_IMAGE = "https://images.unsplash.com/photo-1548335684-7d082b06d74d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWJyYW50JTIwY29sb3JmdWwlMjBtYXJrZXQlMjBwcm9kdWN0cyUyMG92ZXJoZWFkfGVufDF8fHx8MTc3NTQ4MzI1Mnww&ixlib=rb-4.1.0&q=80&w=1080";
 
@@ -43,6 +46,9 @@ export function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
+
+  const [isForgotModalVisible, setIsForgotModalVisible] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
 
   // backend-login
   async function handleLogin() {
@@ -110,11 +116,41 @@ export function LoginPage() {
               setError(`Error del servidor (${err.status})`);
             }
           } else {
-            setError("Error de conexión. Revisar Back");
-          }
+                      // 👇 Agregá esta alerta para que te muestre el error crudo
+                      Alert.alert("🚨 ERROR REAL", err.message || JSON.stringify(err));
+                      setError("Error de conexión. Revisar Back");
+                    }
+
         } finally {
           setIsLoading(false);
         }
+  }
+
+  async function handleSendResetEmail() {
+    if (!forgotEmail) {
+      Alert.alert("Atención", "Ingresá tu email para continuar.");
+      return;
+    }
+    
+    try {
+      
+      await sendForgotPasswordEmail(forgotEmail);
+      
+      Alert.alert(
+        "¡Email enviado!", 
+        "Si el correo está registrado, recibirás un código de 6 dígitos en tu bandeja de entrada."
+      );
+      
+      setIsForgotModalVisible(false); 
+      setForgotEmail(""); 
+
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        Alert.alert("Error del servidor", `Ocurrió un problema (${err.status}). Intentá más tarde.`);
+      } else {
+        Alert.alert("Error de conexión", "No se pudo comunicar con el servidor.");
+      }
+    }
   }
 
   return (
@@ -208,6 +244,12 @@ export function LoginPage() {
                 </View>    
               </View>
 
+              <View style={styles.forgotPasswordRow}>
+                <TouchableOpacity onPress={() => setIsForgotModalVisible(true)}>
+                  <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+                </TouchableOpacity>
+              </View>
+
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <FormButton onPress={handleLogin} style={{ marginTop: spacing.sm }}>
@@ -286,6 +328,47 @@ export function LoginPage() {
           </View>
         </ScrollView>
       </View>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isForgotModalVisible}
+        onRequestClose={() => setIsForgotModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Recuperar Contraseña</Text>
+            <Text style={styles.modalSubtitle}>
+              Ingresá tu email y te enviaremos las instrucciones para restablecerla.
+            </Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="tu@email.com"
+              placeholderTextColor={colors.gray[300]}
+              value={forgotEmail}
+              onChangeText={setForgotEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+
+            <View style={styles.modalActions}>
+              <Button 
+                variant="ghost" 
+                onPress={() => setIsForgotModalVisible(false)}
+              >
+                Cancelar
+              </Button>
+
+              <Button 
+                variant="primary" 
+                onPress={handleSendResetEmail}
+              >
+                Enviar
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -463,5 +546,61 @@ const styles = StyleSheet.create({
     color: colors.brand[500],
     fontSize: 13,
     fontWeight: typography.weight.bold,
+  },
+  forgotPasswordRow: {
+    alignItems: 'center',
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+  },
+  forgotPasswordText: {
+    color: colors.brand[500],
+    fontSize: 13,
+    fontWeight: typography.weight.semibold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 24,
+    padding: spacing.lg,
+    width: '100%',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+    marginBottom: spacing.xs,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.gray[500],
+    marginBottom: spacing.lg,
+    lineHeight: 20,
+  },
+  modalInput: {
+    backgroundColor: colors.gray[50],
+    borderWidth: 1,
+    borderColor: colors.gray[100],
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    fontSize: typography.size.md,
+    color: colors.gray[900],
+    marginBottom: spacing.lg,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
   }
 });
