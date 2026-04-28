@@ -22,7 +22,8 @@ import {
   View,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { useProduct } from "@/entities/product";
+import * as Linking from "expo-linking";
+import { useProduct, getProductShareLink } from "@/entities/product";
 import type { Product } from "@/entities/product";
 import { useAddToCart, useCart } from "@/entities/cart";
 import { ApiError, apiGet } from "@/shared/api";
@@ -64,6 +65,40 @@ export function ProductDetailPage() {
   }
 
   if (error || !data) {
+    const errorDetail = error instanceof ApiError
+      ? (error.details as { detail?: string })?.detail
+      : undefined;
+
+    if (error instanceof ApiError && error.status === 404 && errorDetail === "Product not available") {
+      return (
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.topBar}>
+            <GlassButton icon="chevron-back" onPress={() => navigation.goBack()} />
+          </View>
+          <View style={styles.centeredContainer}>
+            <Text style={styles.errorTitle}>Este producto ya no está disponible</Text>
+            <Text style={styles.helperText}>El vendedor dio de baja este producto.</Text>
+            <Button onPress={() => navigation.goBack()}>Volver al catálogo</Button>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+    if (error instanceof ApiError && error.status === 404 && errorDetail === "Product not found") {
+      return (
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.topBar}>
+            <GlassButton icon="chevron-back" onPress={() => navigation.goBack()} />
+          </View>
+          <View style={styles.centeredContainer}>
+            <Text style={styles.errorTitle}>Producto no encontrado</Text>
+            <Text style={styles.helperText}>El producto que buscás no existe.</Text>
+            <Button onPress={() => navigation.goBack()}>Volver al catálogo</Button>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.topBar}>
@@ -142,17 +177,18 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   }, [canAddToCart, addToCart, product.id, quantity]);
 
   const handleShare = useCallback(async () => {
-    const deepLink = `http://bazaar.pib.ar/products/${product.id}`;
     try {
+      const res = await getProductShareLink(product.id);
+      const url = res.data.url;
       await Share.share({
         title: product.title,
-        message: `Mirá este producto 👇\n${product.title} — $${product.price.toFixed(2)}\n\n${deepLink}`,
-        url: deepLink,
+        message: `Mirá este producto\n${product.title} — $${product.price.toFixed(2)}\n\n${url}`,
+        url,
       });
     } catch {
-      // user cancelled
+      // usuario canceló o producto no disponible
     }
-  }, [product.title, product.price, product.id]);
+  }, [product.id, product.title, product.price]);
 
   function getButtonLabel() {
     if (feedback === "loading") return "Agregando...";
@@ -176,12 +212,14 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
                 iconColor={isFavorite ? colors.brand[400] : colors.white}
                 onPress={() => setIsFavorite((v) => !v)}
               />
-              <GlassButton
-                icon="share-social-outline"
-                onPress={() => {
-                  void handleShare();
-                }}
-              />
+              {!isInactive && (
+                <GlassButton
+                  icon="share-social-outline"
+                  onPress={() => {
+                    void handleShare();
+                  }}
+                />
+              )}
             </View>
           </View>
 

@@ -59,3 +59,11 @@ export function getProduct(productId: string) {
 export function createProduct(formData: FormData) {
   return apiPostForm<ProductResponse>("/catalog/products", formData);
 }
+
+export interface ShareLinkResponse {
+  data: { productId: string; url: string };
+}
+
+export function getProductShareLink(productId: string) {
+  return apiGet<ShareLinkResponse>(`/catalog/products/${productId}/share-link`);
+}
