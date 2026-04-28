@@ -10,7 +10,9 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  Modal
+  Modal,
+  KeyboardAvoidingView,
+  Platform
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -20,7 +22,7 @@ import { colors, typography, spacing } from "@/shared/styles/theme";
 import { FormButton } from "@/shared/ui/FormButton";
 import { Ionicons } from '@expo/vector-icons';
 
-import { loginUser, registerUser,sendForgotPasswordEmail } from "@/entities/user";
+import { loginUser, registerUser,sendForgotPasswordEmail, verifyResetCode, resetPassword} from "@/entities/user";
 import { ApiError, setAuthToken } from "@/shared/api";
 import { Button } from "@/shared/ui/Button";
 
@@ -49,6 +51,11 @@ export function LoginPage() {
 
   const [isForgotModalVisible, setIsForgotModalVisible] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+
+  const [resetStep, setResetStep] = useState<"email" | "code" | "password">("email");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // backend-login
   async function handleLogin() {
@@ -116,8 +123,6 @@ export function LoginPage() {
               setError(`Error del servidor (${err.status})`);
             }
           } else {
-                      // 👇 Agregá esta alerta para que te muestre el error crudo
-                      Alert.alert("🚨 ERROR REAL", err.message || JSON.stringify(err));
                       setError("Error de conexión. Revisar Back");
                     }
 
@@ -135,15 +140,12 @@ export function LoginPage() {
     try {
       
       await sendForgotPasswordEmail(forgotEmail);
-      
+      setResetStep("code");
       Alert.alert(
         "¡Email enviado!", 
         "Si el correo está registrado, recibirás un código de 6 dígitos en tu bandeja de entrada."
       );
       
-      setIsForgotModalVisible(false); 
-      setForgotEmail(""); 
-
     } catch (err: any) {
       if (err instanceof ApiError) {
         Alert.alert("Error del servidor", `Ocurrió un problema (${err.status}). Intentá más tarde.`);
@@ -151,6 +153,40 @@ export function LoginPage() {
         Alert.alert("Error de conexión", "No se pudo comunicar con el servidor.");
       }
     }
+  }
+
+  async function handleVerifyCode() {
+    if (!verificationCode) return Alert.alert("Atención", "Ingresá el código.");
+    try {
+      await verifyResetCode({ email: forgotEmail, code: verificationCode });
+      setResetStep("password"); // ¡Pasamos a pedir la nueva clave!
+    } catch (err: any) {
+      Alert.alert("Error", "El código es incorrecto o ha expirado.");
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!newPassword) return Alert.alert("Atención", "Ingresá tu nueva contraseña.");
+    try {
+      await resetPassword({ 
+        email: forgotEmail, 
+        code: verificationCode, 
+        new_password: newPassword 
+      });
+      Alert.alert("¡Éxito!", "Tu contraseña ha sido actualizada.");
+      closeForgotModal(); // Cerramos y limpiamos
+    } catch (err: any) {
+      Alert.alert("Error", "No se pudo actualizar la contraseña.");
+    }
+  }
+
+  function closeForgotModal() {
+    setIsForgotModalVisible(false);
+    setResetStep("email");
+    setForgotEmail("");
+    setVerificationCode("");
+    setNewPassword("");
+    setShowNewPassword(false);
   }
 
   return (
@@ -332,42 +368,91 @@ export function LoginPage() {
         animationType="fade"
         transparent={true}
         visible={isForgotModalVisible}
-        onRequestClose={() => setIsForgotModalVisible(false)}
+        onRequestClose={closeForgotModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Recuperar Contraseña</Text>
-            <Text style={styles.modalSubtitle}>
-              Ingresá tu email y te enviaremos las instrucciones para restablecerla.
-            </Text>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+       <View style={styles.modalContainer}>
+            {resetStep === "email" && (
+              <>
+                <Text style={styles.modalTitle}>Recuperar Contraseña</Text>
+                <Text style={styles.modalSubtitle}>
+                  Ingresá tu email y te enviaremos las instrucciones para restablecerla.
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="tu@email.com"
+                  placeholderTextColor={colors.gray[300]}
+                  value={forgotEmail}
+                  onChangeText={setForgotEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                <View style={styles.modalActions}>
+                  <Button variant="ghost" onPress={closeForgotModal}>Cancelar</Button>
+                  <Button variant="primary" onPress={handleSendResetEmail}>Enviar</Button>
+                </View>
+              </>
+            )}
 
-            <TextInput
-              style={styles.modalInput}
-              placeholder="tu@email.com"
-              placeholderTextColor={colors.gray[300]}
-              value={forgotEmail}
-              onChangeText={setForgotEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
+            {resetStep === "code" && (
+              <>
+                <Text style={styles.modalTitle}>Verificar Código</Text>
+                <Text style={styles.modalSubtitle}>
+                  Ingresá el código de 6 dígitos que enviamos a tu correo.
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="123456"
+                  placeholderTextColor={colors.gray[300]}
+                  value={verificationCode}
+                  onChangeText={setVerificationCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+                <View style={styles.modalActions}>
+                  <Button variant="ghost" onPress={closeForgotModal}>Cancelar</Button>
+                  <Button variant="primary" onPress={handleVerifyCode}>Verificar</Button>
+                </View>
+              </>
+            )}
 
-            <View style={styles.modalActions}>
-              <Button 
-                variant="ghost" 
-                onPress={() => setIsForgotModalVisible(false)}
-              >
-                Cancelar
-              </Button>
-
-              <Button 
-                variant="primary" 
-                onPress={handleSendResetEmail}
-              >
-                Enviar
-              </Button>
-            </View>
-          </View>
-        </View>
+            {resetStep === "password" && (
+              <>
+                <Text style={styles.modalTitle}>Nueva Contraseña</Text>
+                <Text style={styles.modalSubtitle}>
+                  Ingresá tu nueva clave para acceder a Bazaar.
+                </Text>
+                <View style={[styles.passwordWrapper, { marginBottom: spacing.lg }]}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Nueva contraseña"
+                    placeholderTextColor={colors.gray[300]}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showNewPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    <Ionicons
+                      name={showNewPassword ? "eye-off-outline" : "eye-outline"}
+                      size={22}
+                      color={colors.gray[500]}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.modalActions}>
+                  <Button variant="ghost" onPress={closeForgotModal}>Cancelar</Button>
+                  <Button variant="primary" onPress={handleResetPassword}>Guardar</Button>
+                </View>
+              </>
+            )}
+          </View> 
+          </KeyboardAvoidingView>
       </Modal>
     </View>
   );
