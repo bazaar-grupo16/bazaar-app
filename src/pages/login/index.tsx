@@ -118,7 +118,7 @@ export function LoginPage() {
             if (err.status === 400) {
               setError("Ese email ya se encuentra registrado");
             } else if (err.status === 422) {
-              setError("Email inválido o contraseña muy débil");
+              setError("Verificá que el email sea válido y que la contraseña cumpla los requisitos (tocá el ícono ?).");
             } else {
               setError(`Error del servidor (${err.status})`);
             }
@@ -159,7 +159,7 @@ export function LoginPage() {
     if (!verificationCode) return Alert.alert("Atención", "Ingresá el código.");
     try {
       await verifyResetCode({ email: forgotEmail, code: verificationCode });
-      setResetStep("password"); // ¡Pasamos a pedir la nueva clave!
+      setResetStep("password");
     } catch (err: any) {
       Alert.alert("Error", "El código es incorrecto o ha expirado.");
     }
@@ -174,9 +174,20 @@ export function LoginPage() {
         new_password: newPassword 
       });
       Alert.alert("¡Éxito!", "Tu contraseña ha sido actualizada.");
-      closeForgotModal(); // Cerramos y limpiamos
+      closeForgotModal();
     } catch (err: any) {
-      Alert.alert("Error", "No se pudo actualizar la contraseña.");
+      if (err instanceof ApiError) {
+        if (err.status === 422) {
+          Alert.alert(
+            "Contraseña débil", 
+            "La contraseña no cumple con los requisitos de seguridad. Tocá el ícono (?) para revisarlos."
+          );
+        } else {
+          Alert.alert("Error del servidor", `No se pudo actualizar (${err.status}).`);
+        }
+      } else {
+        Alert.alert("Error", "No se pudo conectar con el servidor.");
+      }
     }
   }
 
@@ -187,6 +198,13 @@ export function LoginPage() {
     setVerificationCode("");
     setNewPassword("");
     setShowNewPassword(false);
+  }
+
+  function showPasswordHint() {
+    Alert.alert(
+      "Seguridad de la contraseña",
+      "Para proteger tu cuenta, la contraseña debe tener al menos:\n\n• 1 letra mayúscula\n• 1 letra minúscula\n• 2 números\n• 1 carácter especial (!@#$%^&*)"
+    );
   }
 
   return (
@@ -319,7 +337,12 @@ export function LoginPage() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Contraseña</Text>
+                <View style={styles.labelRow}>
+                  <Text style={[styles.label, { marginBottom: 0 }]}>Contraseña</Text>
+                  <TouchableOpacity onPress={showPasswordHint} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="help-circle-outline" size={20} color={colors.gray[500]} />
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.passwordWrapper}>
                   <TextInput
                     style={styles.passwordInput}
@@ -421,7 +444,12 @@ export function LoginPage() {
 
             {resetStep === "password" && (
               <>
-                <Text style={styles.modalTitle}>Nueva Contraseña</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs }}>
+                  <Text style={[styles.modalTitle, { marginBottom: 0 }]}>Nueva Contraseña</Text>
+                  <TouchableOpacity onPress={showPasswordHint} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="help-circle-outline" size={22} color={colors.gray[500]} />
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.modalSubtitle}>
                   Ingresá tu nueva clave para acceder a Bazaar.
                 </Text>
