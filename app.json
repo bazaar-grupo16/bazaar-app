@@ -8,10 +8,25 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bazaar.app"
+      "bundleIdentifier": "com.bazaar.app",
+      "associatedDomains": ["applinks:bazaar.pib.ar"]
     },
     "android": {
-      "package": "com.bazaar.app"
+      "package": "com.bazaar.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "bazaar.pib.ar",
+              "pathPrefix": "/products"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
