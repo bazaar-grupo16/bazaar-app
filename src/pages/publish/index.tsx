@@ -118,7 +118,11 @@ export function PublishPage() {
   function setField(key: keyof FormState) {
     return (value: string) => {
       setForm((prev) => ({ ...prev, [key]: value }));
-      if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
+      if (errors[key]) {
+        const newErrors = { ...errors };
+        delete newErrors[key];
+        setErrors(newErrors);
+      }
     };
   }
 
@@ -169,12 +173,15 @@ export function PublishPage() {
         rejected.push(`${asset.fileName ?? "archivo"}: excede ${MAX_FILE_MB}MB`);
         continue;
       }
-      newImages.push({
+      const image: PickedImage = {
         uri: asset.uri,
         mimeType: mime,
         fileName: asset.fileName ?? `image_${Date.now()}.jpg`,
-        fileSize: asset.fileSize,
-      });
+      };
+      if (asset.fileSize !== undefined) {
+        image.fileSize = asset.fileSize;
+      }
+      newImages.push(image);
     }
 
     if (rejected.length > 0) {
@@ -182,7 +189,10 @@ export function PublishPage() {
     }
 
     setImages((prev) => [...prev, ...newImages].slice(0, MAX_IMAGES));
-    if (errors.images) setErrors((prev) => ({ ...prev, images: undefined }));
+    if (errors.images) {
+      const { images: _, ...rest } = errors;
+      setErrors(rest);
+    }
   }
 
   function removeImage(index: number) {
@@ -298,7 +308,7 @@ export function PublishPage() {
               </TouchableOpacity>
             )}
           </View>
-          <FieldError message={errors.images} />
+          {errors.images && <FieldError message={errors.images} />}
 
           {/* Title */}
           <SectionHeader label="Título" />
@@ -311,7 +321,7 @@ export function PublishPage() {
             maxLength={120}
             returnKeyType="next"
           />
-          <FieldError message={errors.title} />
+          {errors.title && <FieldError message={errors.title} />}
 
           {/* Category */}
           <SectionHeader label="Categoría" />
@@ -325,7 +335,7 @@ export function PublishPage() {
             </Text>
             <Ionicons name="chevron-down" size={18} color={colors.gray[400]} />
           </TouchableOpacity>
-          <FieldError message={errors.category} />
+          {errors.category && <FieldError message={errors.category} />}
 
           {/* Price */}
           <SectionHeader label="Precio" />
@@ -341,7 +351,7 @@ export function PublishPage() {
               returnKeyType="next"
             />
           </View>
-          <FieldError message={errors.price} />
+          {errors.price && <FieldError message={errors.price} />}
 
           {/* Stock */}
           <SectionHeader label="Stock disponible" />
@@ -354,7 +364,7 @@ export function PublishPage() {
             keyboardType="number-pad"
             returnKeyType="next"
           />
-          <FieldError message={errors.stock} />
+          {errors.stock && <FieldError message={errors.stock} />}
 
           {/* Description */}
           <SectionHeader label="Descripción" />
@@ -368,7 +378,7 @@ export function PublishPage() {
             numberOfLines={5}
             textAlignVertical="top"
           />
-          <FieldError message={errors.description} />
+          {errors.description && <FieldError message={errors.description} />}
 
           <View style={{ height: spacing.xl }} />
         </ScrollView>

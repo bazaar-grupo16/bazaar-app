@@ -1,14 +1,7 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 
-let _authToken: string | null = null;
-
-export function setAuthToken(token: string | null) {
-  _authToken = token;
-}
-
-function authHeader(): Record<string, string> {
-  return _authToken ? { Authorization: `Bearer ${_authToken}` } : {};
-}
+import { refreshAuthSession, useAuthStore } from "@/shared/auth";
+import { protectedApi, publicApi } from "./http";
 
 export class ApiError extends Error {
   constructor(
@@ -21,203 +14,239 @@ export class ApiError extends Error {
   }
 }
 
-function getApiBaseUrl() {
-  if (!API_BASE_URL) {
-    throw new Error("Missing EXPO_PUBLIC_API_BASE_URL");
+type RetryableRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+};
+
+function toApiError(error: unknown) {
+  if (axios.isAxiosError(error) && error.response) {
+    const responseData = error.response.data;
+    const message =
+      typeof responseData === "object" && responseData !== null && "detail" in responseData
+        ? String((responseData as { detail?: unknown }).detail ?? error.response.statusText)
+        : error.response.statusText || "API request failed";
+
+    return new ApiError(message, error.response.status, responseData);
   }
 
-  return API_BASE_URL.replace(/\/$/, "");
+  return null;
 }
 
-function buildUrl(path: string) {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${getApiBaseUrl()}${normalizedPath}`;
-}
+protectedApi.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const accessToken = useAuthStore.getState().accessToken;
+
+  if (accessToken) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  console.log("[API] Request:", {
+    method: config.method?.toUpperCase(),
+    url: config.url,
+    baseURL: config.baseURL,
+    hasAuth: !!accessToken,
+  });
+
+  return config;
+});
+
+protectedApi.interceptors.response.use(
+  (response) => {
+    console.log("[API] Response:", {
+      status: response.status,
+      url: response.config.url,
+    });
+    return response;
+  },
+  async (error) => {
+    console.error("[API] Error:", {
+      isAxiosError: axios.isAxiosError(error),
+      status: error.response?.status,
+      url: error.config?.url,
+      message: error.message,
+    });
+
+    if (!axios.isAxiosError(error) || !error.config || error.response?.status !== 401) {
+      throw error;
+    }
+
+    const originalRequest = error.config as RetryableRequestConfig;
+
+    if (originalRequest._retry) {
+      throw error;
+    }
+
+    originalRequest._retry = true;
+
+    const refreshedSession = await refreshAuthSession();
+
+    if (!refreshedSession) {
+      throw error;
+    }
+
+    originalRequest.headers = originalRequest.headers ?? {};
+    originalRequest.headers.Authorization = `Bearer ${refreshedSession.access_token}`;
+
+    return protectedApi.request(originalRequest);
+  },
+);
 
 export async function apiGet<TResponse>(path: string): Promise<TResponse> {
-  const url = buildUrl(path);
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      ...authHeader(),
-    },
-  });
-
-  let data: any;
-
   try {
-    data = await response.json();
-  } catch {
-    data = await response.text();
-  }
+    const { data } = await protectedApi.get<TResponse>(path);
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
 
-  if (!response.ok) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed", { url, status: response.status, details: data });
+    if (apiError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("API request failed", { path, status: apiError.status, details: apiError.details });
+      }
+
+      throw apiError;
     }
 
-    throw new ApiError(response.statusText, response.status, data);
+    throw error;
   }
-
-  return data as TResponse;
 }
 
-export async function apiPost<TResponse, TBody = unknown>(
-  path: string,
-  body: TBody
-): Promise<TResponse> {
-  const url = buildUrl(path);
+export async function publicApiPost<TResponse, TBody = unknown>(path: string, body: TBody): Promise<TResponse> {
+  try {
+    const { data } = await publicApi.post<TResponse>(path, body);
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...authHeader(),
-    },
-    body: JSON.stringify(body),
-  });
+    if (apiError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("API request failed (PUBLIC POST)", { path, status: apiError.status, details: apiError.details });
+      }
 
-  if (!response.ok) {
-    let details: unknown;
-
-    try {
-      details = await response.json();
-    } catch {
-      details = await response.text();
+      throw apiError;
     }
 
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed (POST)", { url, status: response.status, details });
-    }
-
-    throw new ApiError(response.statusText, response.status, details);
+    throw error;
   }
+}
 
-  return response.json() as Promise<TResponse>;
+export async function apiPost<TResponse, TBody = unknown>(path: string, body: TBody): Promise<TResponse> {
+  try {
+    const { data } = await protectedApi.post<TResponse>(path, body);
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
+
+    if (apiError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("API request failed (POST)", { path, status: apiError.status, details: apiError.details });
+      }
+
+      throw apiError;
+    }
+
+    throw error;
+  }
 }
 
 export async function apiPatch<TResponse, TBody = unknown>(
   path: string,
   body: TBody
 ): Promise<TResponse> {
-  const url = buildUrl(path);
+  try {
+    const { data } = await protectedApi.patch<TResponse>(path, body);
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
 
-  const response = await fetch(url, {
-    method: "PATCH",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...authHeader(),
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    let details: unknown;
-    try { details = await response.json(); } catch { details = await response.text(); }
+    if (apiError) {
     if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed (PATCH)", { url, status: response.status, details });
-    }
-    throw new ApiError(response.statusText, response.status, details);
-  }
+        console.warn("API request failed (PATCH)", {
+          path,
+          status: apiError.status,
+          details: apiError.details,
+        });
+      }
 
-  return response.json() as Promise<TResponse>;
+      throw apiError;
+    }
+
+    throw error;
+  }
 }
 
 export async function apiDelete<TResponse = void>(
   path: string
 ): Promise<TResponse> {
-  const url = buildUrl(path);
+  try {
+    const { data } = await protectedApi.delete<TResponse>(path);
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
 
-  const response = await fetch(url, {
-    method: "DELETE",
-    headers: {
-      Accept: "application/json",
-      ...authHeader(),
-    },
-  });
-
-  if (!response.ok) {
-    let details: unknown;
-    try { details = await response.json(); } catch { details = await response.text(); }
+    if (apiError) {
     if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed (DELETE)", { url, status: response.status, details });
-    }
-    throw new ApiError(response.statusText, response.status, details);
-  }
+        console.warn("API request failed (DELETE)", {
+          path,
+          status: apiError.status,
+          details: apiError.details,
+        });
+      }
 
-  if (response.status === 204) return undefined as TResponse;
-  return response.json() as Promise<TResponse>;
+      throw apiError;
+    }
+
+    throw error;
+  }
 }
 
 export async function apiDeleteWithBody<TResponse, TBody = unknown>(
   path: string,
   body: TBody
 ): Promise<TResponse> {
-  const url = buildUrl(path);
+  try {
+    const { data } = await protectedApi.delete<TResponse>(path, {
+      data: body,
+    });
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
 
-  const response = await fetch(url, {
-    method: "DELETE",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...authHeader(),
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    let details: unknown;
-    try { details = await response.json(); } catch { details = await response.text(); }
+    if (apiError) {
     if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed (DELETE with body)", { url, status: response.status, details });
-    }
-    throw new ApiError(response.statusText, response.status, details);
-  }
+        console.warn("API request failed (DELETE with body)", {
+          path,
+          status: apiError.status,
+          details: apiError.details,
+        });
+      }
 
-  if (response.status === 204) return undefined as TResponse;
-  return response.json() as Promise<TResponse>;
+      throw apiError;
+    }
+
+    throw error;
+  }
 }
 
-export async function apiPostForm<TResponse>(
-  path: string,
-  formData: FormData
-): Promise<TResponse> {
-  const url = buildUrl(path);
+export async function apiPostForm<TResponse>(path: string, formData: FormData): Promise<TResponse> {
+  try {
+    const { data } = await protectedApi.post<TResponse>(path, formData);
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      // No Content-Type: fetch sets multipart/form-data with boundary automatically
-      Accept: "application/json",
-      ...authHeader(),
-    },
-    body: formData,
-  });
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
 
-  if (!response.ok) {
-    let raw: string | null = null;
-    let details: unknown = null;
-
-    try {
-      raw = await response.text();
-
-      try {
-        details = raw ? JSON.parse(raw) : null;
-      } catch {
-        details = raw;
+    if (apiError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("API request failed (POST form)", {
+          path,
+          status: apiError.status,
+          details: apiError.details,
+        });
       }
-    } catch {
-      details = null;
+
+      throw apiError;
     }
 
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("API request failed (POST form)", { url, status: response.status, details });
-    }
-
-    throw new ApiError(response.statusText, response.status, details);
+    throw error;
   }
-
-  return response.json() as Promise<TResponse>;
 }
