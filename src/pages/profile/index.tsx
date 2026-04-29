@@ -1,8 +1,12 @@
 import { colors, typography } from "@/shared/styles";
 
 import { useState } from "react";
-import { ScrollView, View, StyleSheet } from "react-native";
+import { ScrollView, View, StyleSheet, Alert } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import type { RootStackParamList } from "@/navigation";
+import { setAuthToken } from "@/shared/api";
 import { Product, Tab } from "./types";
 
 import { ProfileHeader } from "./components/ProfileHeader";
@@ -26,7 +30,15 @@ export function ProfilePage({
   onEdit,
   onSettings,
 }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Tabs">>();
   const [tab, setTab] = useState<Tab>("publicaciones");
+
+  const handleSignOut = async () => {
+    // TODO: agregar logout backend cuando exista el endpoint.
+    setAuthToken(null);
+    onSignOut?.();
+    navigation.replace("Login");
+  };
 
   const favorites = PRODUCTS.filter((product) => product.isFavorite);
 
@@ -69,7 +81,7 @@ export function ProfilePage({
           )
         )}
 
-        <SignOutButton onPress={onSignOut} />
+        <SignOutButton onPress={handleSignOut} />
       </View>
 
     </ScrollView>

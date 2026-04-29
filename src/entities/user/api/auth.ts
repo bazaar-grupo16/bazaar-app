@@ -8,3 +8,8 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthResp
 export async function registerUser(credentials: RegisterCredentials): Promise<void> {
   return apiPost<void, RegisterCredentials>("/register", credentials);
 }
+
+// TODO: Verificar que el endpoint /logout existe en el backend
+// export async function logoutUser(): Promise<void> {
+//   return apiPost<void>("/logout", {});
+// }
