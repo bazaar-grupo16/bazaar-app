@@ -1,118 +1,76 @@
+import axios from "axios";
+
 import { ApiError } from "@/shared/api";
+import { protectedApi } from "@/shared/api/http";
 import type { CartItemResponse, CartResponse } from "../model/types";
 
-const CART_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+function toApiError(error: unknown) {
+  if (axios.isAxiosError(error) && error.response) {
+    const responseData = error.response.data;
+    const message =
+      typeof responseData === "object" && responseData !== null && "detail" in responseData
+        ? String((responseData as { detail?: unknown }).detail ?? error.response.statusText)
+        : error.response.statusText || "Cart API request failed";
 
-function getCartBaseUrl() {
-  if (!CART_BASE_URL) {
-    throw new Error("Missing EXPO_PUBLIC_API_BASE_URL");
+    return new ApiError(message, error.response.status, responseData);
   }
 
-  return CART_BASE_URL.replace(/\/$/, "");
+  return null;
 }
 
-function buildCartUrl(path: string) {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${getCartBaseUrl()}${normalizedPath}`;
-}
-
-async function handleErrorResponse(response: Response) {
-  let details: unknown;
-
+async function wrapRequest<TResponse>(request: Promise<{ data: TResponse }>, operation: string) {
   try {
-    details = await response.json();
-  } catch {
-    details = await response.text();
+    const { data } = await request;
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
+
+    if (apiError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`Cart API request failed (${operation})`, {
+          status: apiError.status,
+          details: apiError.details,
+        });
+      }
+
+      throw apiError;
+    }
+
+    throw error;
   }
-
-  if (process.env.NODE_ENV !== "production") {
-    console.warn("Cart API request failed", {
-      url: response.url,
-      status: response.status,
-      details,
-    });
-  }
-
-  throw new ApiError(response.statusText, response.status, details);
-}
-
-export async function cartGet<TResponse>(path: string): Promise<TResponse> {
-  const url = buildCartUrl(path);
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-  });
-
-  if (!response.ok) {
-    await handleErrorResponse(response);
-  }
-
-  return response.json() as Promise<TResponse>;
-}
-
-async function cartMutate(
-  method: "POST" | "PUT" | "DELETE",
-  path: string,
-  body?: unknown,
-): Promise<Response> {
-  const url = buildCartUrl(path);
-
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-  };
-
-  if (body !== undefined) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : null,
-  });
-
-  if (!response.ok) {
-    await handleErrorResponse(response);
-  }
-
-  return response;
 }
 
 // ---------- Endpoints ----------
 
 export function getCart(userId: number) {
-  return cartGet<CartResponse>(`/cart/${userId}`);
+  return wrapRequest<CartResponse>(protectedApi.get(`/cart/${userId}`), "GET");
 }
 
 export function addToCart(userId: number, productId: string, quantity: number = 1) {
-  return cartMutate("POST", `/cart/${userId}/items`, { productId, quantity }).then(
-    (res) => res.json() as Promise<CartItemResponse>,
+  return wrapRequest<CartItemResponse>(
+    protectedApi.post(`/cart/${userId}/items`, { productId, quantity }),
+    "POST",
   );
 }
 
 export function removeCartItem(userId: number, productId: string) {
-  return cartMutate("DELETE", `/cart/${userId}/items/${productId}`);
+  return wrapRequest<void>(protectedApi.delete(`/cart/${userId}/items/${productId}`), "DELETE");
 }
 
 export function clearCart(userId: number) {
-  return cartMutate("DELETE", `/cart/${userId}`);
+  return wrapRequest<void>(protectedApi.delete(`/cart/${userId}`), "DELETE");
 }
 
-export function incrementCartItem(
-  userId: number,
-  productId: string,
-  quantity: number,
-) {
-  return cartMutate("PUT", `/cart/${userId}/${productId}/increment`, {
-    quantity,
-  });
+export function incrementCartItem(userId: number, productId: string, quantity: number) {
+  return wrapRequest<void>(
+    protectedApi.put(`/cart/${userId}/${productId}/increment`, { quantity }),
+    "PUT",
+  );
 }
 
-export function decrementCartItem(
-  userId: number,
-  productId: string,
-  quantity: number,
-) {
-  return cartMutate("PUT", `/cart/${userId}/${productId}/decrement`, {
-    quantity,
-  });
+export function decrementCartItem(userId: number, productId: string, quantity: number) {
+  return wrapRequest<void>(
+    protectedApi.put(`/cart/${userId}/${productId}/decrement`, { quantity }),
+    "PUT",
+  );
 }
