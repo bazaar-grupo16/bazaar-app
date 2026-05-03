@@ -97,11 +97,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     justifyContent: "flex-end",
-    backgroundColor: "transparent",
+    backgroundColor: "rgba(0,0,0,0.45)",
   },
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
   },
   panel: {
     width: PANEL_W,
