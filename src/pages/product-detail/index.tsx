@@ -63,26 +63,26 @@ export function ProductDetailPage() {
       </SafeAreaView>
     );
   }
+  
+  if (data?.data.status === "inactive") {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.topBar}>
+          <GlassButton icon="chevron-back" onPress={() => navigation.goBack()} />
+        </View>
+        <View style={styles.centeredContainer}>
+          <Text style={styles.errorTitle}>Este producto ya no está disponible</Text>
+          <Text style={styles.helperText}>El vendedor dio de baja este producto.</Text>
+          <Button onPress={() => navigation.goBack()}>Volver al catálogo</Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (error || !data) {
     const errorDetail = error instanceof ApiError
       ? (error.details as { detail?: string })?.detail
       : undefined;
-
-    if (error instanceof ApiError && error.status === 404 && errorDetail === "Product not available") {
-      return (
-        <SafeAreaView style={styles.safeArea}>
-          <View style={styles.topBar}>
-            <GlassButton icon="chevron-back" onPress={() => navigation.goBack()} />
-          </View>
-          <View style={styles.centeredContainer}>
-            <Text style={styles.errorTitle}>Este producto ya no está disponible</Text>
-            <Text style={styles.helperText}>El vendedor dio de baja este producto.</Text>
-            <Button onPress={() => navigation.goBack()}>Volver al catálogo</Button>
-          </View>
-        </SafeAreaView>
-      );
-    }
 
     if (error instanceof ApiError && error.status === 404 && errorDetail === "Product not found") {
       return (

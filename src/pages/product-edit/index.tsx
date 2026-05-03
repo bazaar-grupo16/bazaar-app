@@ -163,7 +163,6 @@ export function EditProductPage() {
 
   const totalImageCount = orderedImages.length + newImages.length;
   const isInactive = product?.status === "inactive";
-  const isOutOfStock = product?.status === "out_of_stock";
 
   // ── image handlers ──────────────────────────────────────────────────────────
 
@@ -584,9 +583,7 @@ export function EditProductPage() {
           </TouchableOpacity>
 
           {/* ── Disable / Enable button ── */}
-          {/* Out-of-stock products can't be manually toggled — seller just updates stock */}
-          {!isOutOfStock && (
-            <TouchableOpacity
+          <TouchableOpacity
               style={[
                 styles.statusBtn,
                 isInactive ? styles.statusBtnEnable : styles.statusBtnDisable,
@@ -611,8 +608,8 @@ export function EditProductPage() {
                   </>
                 )
               }
-            </TouchableOpacity>
-          )}
+          </TouchableOpacity>
+          
 
         </ScrollView>
       </KeyboardAvoidingView>
