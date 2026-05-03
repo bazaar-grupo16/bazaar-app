@@ -18,31 +18,28 @@ export function CartSummary({
 }: CartSummaryProps) {
   return (
     <View style={styles.container}>
-      <View style={styles.divider} />
-
-      <View style={styles.row}>
-        <Text style={styles.label}>
+      <View style={styles.totalRow}>
+        <Text style={styles.itemCount}>
           {itemCount} {itemCount === 1 ? "producto" : "productos"}
         </Text>
-        <View style={styles.totalRow}>
+        <View style={styles.totalBlock}>
           <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.totalValue}>${totalPrice.value}</Text>
         </View>
       </View>
 
-      <View style={styles.actions}>
-        <Button
-          variant="secondary"
-          onPress={onClear}
-          loading={isClearing}
-          style={styles.clearButton}
-        >
-          Vaciar carrito
-        </Button>
-        <Button style={styles.checkoutButton}>
-          Ir a pagar
-        </Button>
-      </View>
+      <Button style={styles.checkoutButton}>
+        Ir a pagar
+      </Button>
+
+      <Button
+        variant="ghost"
+        onPress={onClear}
+        loading={isClearing}
+        style={styles.clearButton}
+      >
+        Vaciar carrito
+      </Button>
     </View>
   );
 }
@@ -51,43 +48,44 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
     paddingBottom: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[200],
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.gray[300],
-  },
-  row: {
+  totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: spacing.xs,
   },
-  label: {
+  itemCount: {
     fontSize: typography.size.md,
     color: colors.gray[500],
   },
-  totalRow: {
+  totalBlock: {
     alignItems: "flex-end",
     gap: 2,
   },
   totalLabel: {
     fontSize: typography.size.sm,
-    color: colors.gray[500],
+    color: colors.gray[400],
   },
   totalValue: {
     fontSize: typography.size.xl,
     fontWeight: typography.weight.bold,
     color: colors.gray[900],
   },
-  actions: {
-    flexDirection: "row",
-    gap: spacing.sm,
+  checkoutButton: {
+    borderRadius: radius.md,
   },
   clearButton: {
-    flex: 1,
-  },
-  checkoutButton: {
-    flex: 2,
+    borderRadius: radius.md,
   },
 });
