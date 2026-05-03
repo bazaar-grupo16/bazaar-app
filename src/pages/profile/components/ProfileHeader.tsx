@@ -1,24 +1,27 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { colors, typography, spacing, radius } from "@/shared/styles";
 import { Stat } from "../types";
 
-const USER_AVATAR =
-  "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=200&q=80";
-
-const STATS: Stat[] = [
-  { label: "Publicaciones", value: "2",  color: "#f97316" },
-  { label: "Ventas",        value: "18", color: "#22c55e" },
-  { label: "Compras",       value: "6",  color: "#3b82f6" },
-];
+const USER_NAME    = "user_name";
+const USER_INITIAL = "U";
 
 interface Props {
+  publicationsCount: number;
   onEditPress?: (() => void) | undefined;
   onSettingsPress?: (() => void) | undefined;
 }
 
-export function ProfileHeader({ onEditPress, onSettingsPress }: Props) {
+export function ProfileHeader({ publicationsCount, onEditPress, onSettingsPress }: Props) {
   const insets = useSafeAreaInsets();
+
+  const stats: Stat[] = [
+    { label: "Publicaciones", value: String(publicationsCount), color: colors.brand[500] },
+    { label: "Ventas",        value: "Y",                      color: "#22c55e" },
+    { label: "Compras",       value: "Z",                       color: "#3b82f6" },
+  ];
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
 
@@ -27,29 +30,28 @@ export function ProfileHeader({ onEditPress, onSettingsPress }: Props) {
         <Text style={styles.title}>Mi perfil</Text>
         <View style={styles.buttons}>
           <TouchableOpacity style={styles.iconBtn} onPress={onEditPress}>
-            <Ionicons name="create-outline" size={16} color="#4b5563" />
+            <Ionicons name="create-outline" size={22} color={colors.gray[700]} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={onSettingsPress}>
-            <Ionicons name="settings-outline" size={16} color="#4b5563" />
+            <Ionicons name="settings-outline" size={22} color={colors.gray[700]} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Avatar + info */}
       <View style={styles.userRow}>
-        <View>
-          <Image source={{ uri: USER_AVATAR }} style={styles.avatar} />
-          <View style={styles.onlineDot} />
+        <View style={styles.avatar}>
+          <Text style={styles.avatarInitial}>{USER_INITIAL}</Text>
         </View>
 
         <View style={styles.userDetails}>
-          <Text style={styles.userName}>Mia García</Text>
+          <Text style={styles.userName}>{USER_NAME}</Text>
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={13} color="#fbbf24" />
             <Text style={styles.ratingText}>4.9 · Miembro desde mar 2024</Text>
           </View>
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color="#9ca3af" />
+            <Ionicons name="location-outline" size={13} color={colors.gray[400]} />
             <Text style={styles.locationText}>Palermo, Buenos Aires</Text>
           </View>
         </View>
@@ -57,7 +59,7 @@ export function ProfileHeader({ onEditPress, onSettingsPress }: Props) {
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        {STATS.map((s) => (
+        {stats.map((s) => (
           <View key={s.label} style={styles.statBox}>
             <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
             <Text style={styles.statLabel}>{s.label}</Text>
@@ -71,62 +73,58 @@ export function ProfileHeader({ onEditPress, onSettingsPress }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
   },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
   },
   buttons: {
     flexDirection: "row",
-    gap: 8,
+    gap: spacing.sm,
   },
   iconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#f3f4f6",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.gray[100],
     alignItems: "center",
     justifyContent: "center",
   },
   userRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: spacing.md,
   },
   avatar: {
     width: 64,
     height: 64,
     borderRadius: 32,
+    backgroundColor: colors.brand[500],
+    alignItems: "center",
+    justifyContent: "center",
   },
-  onlineDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#4ade80",
-    borderWidth: 2,
-    borderColor: "#fff",
+  avatarInitial: {
+    color: colors.white,
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.bold,
   },
   userDetails: {
     flex: 1,
   },
   userName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
   },
   ratingRow: {
     flexDirection: "row",
@@ -135,8 +133,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   ratingText: {
-    fontSize: 13,
-    color: "#4b5563",
+    fontSize: typography.size.sm,
+    color: colors.gray[500],
   },
   locationRow: {
     flexDirection: "row",
@@ -146,29 +144,30 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 12,
-    color: "#9ca3af",
+    color: colors.gray[400],
   },
   statsRow: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
   statBox: {
     flex: 1,
-    backgroundColor: "#f9fafb",
-    borderRadius: 16,
+    backgroundColor: colors.gray[50],
+    borderRadius: radius.lg,
     paddingVertical: 12,
     alignItems: "center",
   },
   statValue: {
-    fontSize: 20,
+    fontSize: typography.size.lg,
     fontWeight: "800",
   },
   statLabel: {
     fontSize: 10,
-    fontWeight: "500",
-    color: "#9ca3af",
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[400],
     textAlign: "center",
     marginTop: 2,
   },
 });
+
