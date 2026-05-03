@@ -25,6 +25,15 @@ export type ProductResponse = {
   data: Product;
 };
 
+export type UpdateProductBody = Partial<{
+  title: string;
+  description: string;
+  price: number;
+  stock: number;
+  category: string;
+  status: ProductStatus;
+}>;
+
 export type ProductListParams = {
   limit?: number;
   offset?: number;
