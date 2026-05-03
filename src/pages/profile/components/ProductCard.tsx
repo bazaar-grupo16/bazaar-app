@@ -25,28 +25,32 @@ export function ProductCard({ product, onPress, onEdit, onPreview }: Props) {
               <Ionicons name="image-outline" size={32} color={colors.gray[300]} />
             </View>
         }
+
+        {/* Status badge — top-left */}
+        {product.status !== "active" && (
+          <View style={[styles.statusBadge, product.status === "out_of_stock" ? styles.badgeOos : styles.badgeInactive]}>
+            <Text style={styles.badgeText}>
+              {product.status === "out_of_stock" ? "Sin stock" : "Inactiva"}
+            </Text>
+          </View>
+        )}
+
+        {/* Edit button — top-right */}
+        {onEdit && (
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={onEdit}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Ionicons name="create-outline" size={15} color={colors.white} />
+          </TouchableOpacity>
+        )}
       </View>
+
       <View style={styles.cardBody}>
         <Text style={styles.cardTitle} numberOfLines={2}>{product.title}</Text>
         <Text style={styles.cardPrice}>${product.price.toFixed(2)}</Text>
         <Text style={styles.cardCategory} numberOfLines={1}>{product.category}</Text>
-      </View>
-      <View style={styles.actionRow}>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={onEdit}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <Ionicons name="create-outline" size={17} color={colors.gray[500]} />
-        </TouchableOpacity>
-        <View style={styles.actionDivider} />
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={onPreview}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <Ionicons name="eye-outline" size={17} color={colors.gray[500]} />
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -61,7 +65,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gray[200],
   },
-  imageContainer: { width: "100%", aspectRatio: 1 },
+  imageContainer: {
+    width: "100%",
+    aspectRatio: 1,
+    position: "relative",
+  },
   cardImage: { width: "100%", height: "100%", backgroundColor: colors.gray[100] },
   imagePlaceholder: { alignItems: "center", justifyContent: "center" },
   cardBody: { padding: spacing.sm, gap: 2 },
@@ -77,19 +85,35 @@ const styles = StyleSheet.create({
     color: colors.brand[500],
   },
   cardCategory: { fontSize: 12, color: colors.gray[400] },
-  actionRow: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: colors.gray[100],
+
+  // Status badge (top-left)
+  statusBadge: {
+    position: "absolute",
+    top: 6,
+    left: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  actionBtn: {
-    flex: 1,
+  badgeInactive: { backgroundColor: "rgba(55,65,81,0.75)" },
+  badgeOos:      { backgroundColor: "rgba(234,88,12,0.85)" },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+    color: "#ffffff",
+    letterSpacing: 0.2,
+  },
+
+  // Edit button (top-right)
+  editBtn: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.42)",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: spacing.sm,
-  },
-  actionDivider: {
-    width: 1,
-    backgroundColor: colors.gray[100],
   },
 });

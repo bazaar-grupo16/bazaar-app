@@ -7,10 +7,11 @@ import type { RootStackParamList } from "@/navigation";
 import { setAuthToken } from "@/shared/api";
 import { useProducts } from "@/entities/product";
 import { colors, typography, spacing } from "@/shared/styles";
-import { Tab } from "./types";
+import type { Tab, PublicationsSubTab } from "./types";
 
 import { ProfileHeader } from "./components/ProfileHeader";
 import { ProfileTabs } from "./components/ProfileTabs";
+import { PublicationsSubTabs } from "./components/PublicationsSubTabs";
 import { ProductGrid } from "./components/ProductGrid";
 import { EmptyState } from "./components/EmptyState";
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -18,14 +19,35 @@ import { SettingsPanel } from "./components/SettingsPanel";
 // TODO: reemplazar con el ID real del usuario autenticado cuando esté disponible en el token
 const SELLER_ID = "00000000-0000-0000-0000-000000000001";
 
+const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: string }> = {
+  activas:    { title: "Sin publicaciones activas",    subtitle: "Publicá algo y empezá a vender" },
+  inactivas:  { title: "Sin publicaciones inactivas",  subtitle: "Podés desactivar publicaciones desde el editor" },
+  "sin-stock": { title: "Sin publicaciones sin stock", subtitle: "Los productos con stock 0 aparecen aquí" },
+};
+
 export function ProfilePage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Tabs">>();
   const [tab, setTab] = useState<Tab>("publicaciones");
+  const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const { data, isLoading } = useProducts({ sellerId: SELLER_ID });
-  const listings = data?.data ?? [];
-  const total = data?.total ?? 0;
+  const { data, isLoading } = useProducts({ sellerId: SELLER_ID, includeInactive: true });
+  const allListings = data?.data ?? [];
+
+  const activeListings    = allListings.filter((p) => p.status === "active");
+  const inactiveListings  = allListings.filter((p) => p.status === "inactive");
+  const outOfStockListings = allListings.filter((p) => p.status === "out_of_stock");
+
+  const filteredListings =
+    subTab === "activas"    ? activeListings :
+    subTab === "inactivas"  ? inactiveListings :
+    outOfStockListings;
+
+  const counts = {
+    activas:  activeListings.length,
+    inactivas: inactiveListings.length,
+    sinStock:  outOfStockListings.length,
+  };
 
   const handleSignOut = () => {
     setAuthToken(null);
@@ -40,11 +62,13 @@ export function ProfilePage() {
     navigation.navigate("EditProduct", { productId });
   };
 
+  const emptyMsg = EMPTY_MESSAGES[subTab];
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
       <ProfileHeader
-        publicationsCount={total}
+        publicationsCount={activeListings.length}
         onSettingsPress={() => setSettingsOpen(true)}
       />
 
@@ -52,24 +76,34 @@ export function ProfilePage() {
 
       <View style={styles.content}>
         {tab === "publicaciones" ? (
-          isLoading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="small" color={colors.brand[500]} />
-              <Text style={styles.loadingText}>Cargando publicaciones...</Text>
+          <>
+            <PublicationsSubTabs
+              activeTab={subTab}
+              counts={counts}
+              onTabChange={setSubTab}
+            />
+
+            <View style={styles.gridArea}>
+              {isLoading ? (
+                <View style={styles.centered}>
+                  <ActivityIndicator size="small" color={colors.brand[500]} />
+                  <Text style={styles.loadingText}>Cargando publicaciones...</Text>
+                </View>
+              ) : filteredListings.length === 0 ? (
+                <EmptyState
+                  icon={<Ionicons name="bag-outline" size={40} color={colors.gray[300]} />}
+                  title={emptyMsg.title}
+                  subtitle={emptyMsg.subtitle}
+                />
+              ) : (
+                <ProductGrid
+                  items={filteredListings}
+                  onPreview={handlePreview}
+                  onEdit={handleEdit}
+                />
+              )}
             </View>
-          ) : listings.length === 0 ? (
-            <EmptyState
-              icon={<Ionicons name="bag-outline" size={40} color={colors.gray[300]} />}
-              title="Sin publicaciones"
-              subtitle="Publicá algo y empezá a vender"
-            />
-          ) : (
-            <ProductGrid
-              items={listings}
-              onPreview={handlePreview}
-              onEdit={handleEdit}
-            />
-          )
+          </>
         ) : (
           <EmptyState
             icon={<Ionicons name="heart-outline" size={40} color={colors.gray[300]} />}
@@ -95,7 +129,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[50],
   },
   content: {
-    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
   centered: {
@@ -106,5 +139,9 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: typography.size.sm,
     color: colors.gray[500],
+  },
+  gridArea: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
   },
 });
