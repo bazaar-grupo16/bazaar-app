@@ -23,6 +23,7 @@ export function CartItemCard({
   const isInactive = item.status === "inactive";
   const isOutOfStock = item.status === "out_of_stock";
   const hasIssue = isInactive || isOutOfStock;
+  const initial = item.title.charAt(0).toUpperCase();
 
   return (
     <View style={[styles.card, hasIssue && styles.issueCard]}>
@@ -32,35 +33,24 @@ export function CartItemCard({
         </View>
       )}
 
-      <View style={styles.body}>
+      {/* Top row: avatar | info | trash */}
+      <View style={styles.topRow}>
+        <View style={[styles.avatar, hasIssue && styles.avatarIssue]}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+
         <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={2}>
-            {item.title}
-          </Text>
+          <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
 
           {hasIssue && (
-            <View
-              style={[
-                styles.statusBadge,
-                isInactive ? styles.inactiveBadge : styles.outOfStockBadge,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusBadgeText,
-                  isInactive
-                    ? styles.inactiveBadgeText
-                    : styles.outOfStockBadgeText,
-                ]}
-              >
+            <View style={[styles.statusBadge, isInactive ? styles.inactiveBadge : styles.outOfStockBadge]}>
+              <Text style={[styles.statusBadgeText, isInactive ? styles.inactiveBadgeText : styles.outOfStockBadgeText]}>
                 {isInactive ? "No disponible" : "Sin stock"}
               </Text>
             </View>
           )}
 
-          <Text style={styles.unitPrice}>
-            ${unitPrice.toFixed(2)} c/u
-          </Text>
+          <Text style={styles.unitPrice}>${unitPrice.toFixed(2)} c/u</Text>
         </View>
 
         <TouchableOpacity
@@ -70,10 +60,11 @@ export function CartItemCard({
           accessibilityLabel={`Eliminar ${item.title} del carrito`}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="trash-outline" size={20} color={colors.error} />
+          <Ionicons name="trash-outline" size={18} color={colors.error} />
         </TouchableOpacity>
       </View>
 
+      {/* Footer: quantity controls | line total */}
       <View style={styles.footer}>
         <View style={styles.quantityRow}>
           <TouchableOpacity
@@ -84,7 +75,7 @@ export function CartItemCard({
           >
             <Ionicons
               name="remove"
-              size={18}
+              size={16}
               color={item.quantity <= 1 ? colors.gray[300] : colors.gray[700]}
             />
           </TouchableOpacity>
@@ -92,27 +83,20 @@ export function CartItemCard({
           <Text style={styles.quantityText}>{item.quantity}</Text>
 
           <TouchableOpacity
-            style={[
-              styles.quantityButton,
-              item.quantity >= item.stock && styles.quantityButtonDisabled,
-            ]}
+            style={[styles.quantityButton, item.quantity >= item.stock && styles.quantityButtonDisabled]}
             onPress={onIncrement}
             disabled={isUpdating || item.quantity >= item.stock}
             accessibilityLabel="Aumentar cantidad"
           >
             <Ionicons
               name="add"
-              size={18}
-              color={
-                item.quantity >= item.stock ? colors.gray[300] : colors.gray[700]
-              }
+              size={16}
+              color={item.quantity >= item.stock ? colors.gray[300] : colors.gray[700]}
             />
           </TouchableOpacity>
 
           {!isInactive && (
-            <Text style={styles.stockText}>
-              {item.stock} disp.
-            </Text>
+            <Text style={styles.stockText}>{item.stock} disp.</Text>
           )}
         </View>
 
@@ -126,7 +110,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.gray[300],
+    borderColor: colors.gray[200],
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.sm,
@@ -143,20 +127,37 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     zIndex: 10,
   },
-  body: {
+  topRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
     gap: spacing.sm,
   },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand[100],
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  avatarIssue: {
+    backgroundColor: "#FEF3C7",
+  },
+  avatarText: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.brand[600],
+  },
   info: {
     flex: 1,
-    gap: spacing.xs,
+    gap: 4,
   },
   title: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
     color: colors.gray[900],
+    lineHeight: 22,
   },
   statusBadge: {
     alignSelf: "flex-start",
@@ -182,15 +183,19 @@ const styles = StyleSheet.create({
   },
   unitPrice: {
     fontSize: typography.size.sm,
-    color: colors.gray[500],
+    color: colors.gray[400],
   },
   removeButton: {
     padding: spacing.xs,
+    marginTop: 2,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[100],
   },
   quantityRow: {
     flexDirection: "row",
@@ -202,7 +207,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.gray[300],
+    borderColor: colors.gray[200],
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.gray[50],
@@ -219,12 +224,12 @@ const styles = StyleSheet.create({
   },
   stockText: {
     fontSize: 12,
-    color: colors.gray[500],
+    color: colors.gray[400],
     marginLeft: spacing.xs,
   },
   lineTotal: {
     fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,
-    color: colors.brand[700],
+    color: colors.brand[600],
   },
 });

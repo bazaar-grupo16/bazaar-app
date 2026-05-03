@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useCart,
@@ -17,6 +18,7 @@ import { CartSummary } from "./components/CartSummary";
 const USER_ID = 1001;
 
 export function CartPage() {
+  const insets = useSafeAreaInsets();
   const { data, error, isLoading, isRefetching, refetch } = useCart(USER_ID);
   const removeMutation = useRemoveCartItem(USER_ID);
   const clearMutation = useClearCart(USER_ID);
@@ -54,12 +56,21 @@ export function CartPage() {
     [mutatingProductIds, incrementMutation, decrementMutation, removeMutation],
   );
 
+  const header = (
+    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <Text style={styles.title}>Mi Carrito</Text>
+    </View>
+  );
+
   // --- Loading ---
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.brand[500]} />
-        <Text style={styles.helperText}>Cargando carrito...</Text>
+      <View style={styles.fill}>
+        {header}
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.brand[500]} />
+          <Text style={styles.helperText}>Cargando carrito...</Text>
+        </View>
       </View>
     );
   }
@@ -67,15 +78,18 @@ export function CartPage() {
   // --- Error ---
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
-        <Text style={styles.errorTitle}>No se pudo cargar el carrito</Text>
-        <Text style={styles.helperText}>
-          Ocurrió un error al conectarse con el servidor. Intentá de nuevo.
-        </Text>
-        <Button onPress={() => void refetch()} loading={isRefetching}>
-          Reintentar
-        </Button>
+      <View style={styles.fill}>
+        {header}
+        <View style={styles.centered}>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+          <Text style={styles.errorTitle}>No se pudo cargar el carrito</Text>
+          <Text style={styles.helperText}>
+            Ocurrió un error al conectarse con el servidor. Intentá de nuevo.
+          </Text>
+          <Button onPress={() => void refetch()} loading={isRefetching}>
+            Reintentar
+          </Button>
+        </View>
       </View>
     );
   }
@@ -83,19 +97,23 @@ export function CartPage() {
   // --- Empty cart ---
   if (items.length === 0) {
     return (
-      <View style={styles.centered}>
-        <Ionicons name="cart-outline" size={64} color={colors.gray[300]} />
-        <Text style={styles.emptyTitle}>Tu carrito está vacío</Text>
-        <Text style={styles.helperText}>
-          Explorá el catálogo y agregá productos para comenzar.
-        </Text>
+      <View style={styles.fill}>
+        {header}
+        <View style={styles.centered}>
+          <Ionicons name="cart-outline" size={64} color={colors.gray[300]} />
+          <Text style={styles.emptyTitle}>Tu carrito está vacío</Text>
+          <Text style={styles.helperText}>
+            Explorá el catálogo y agregá productos para comenzar.
+          </Text>
+        </View>
       </View>
     );
   }
 
   // --- Cart with items ---
   return (
-    <View style={styles.container}>
+    <View style={styles.fill}>
+      {header}
       <FlatList
         contentContainerStyle={styles.listContent}
         data={items}
@@ -103,9 +121,6 @@ export function CartPage() {
         renderItem={renderItem}
         refreshing={isRefetching}
         onRefresh={() => void refetch()}
-        ListHeaderComponent={
-          <Text style={styles.title}>Mi Carrito</Text>
-        }
       />
 
       {cart && (
@@ -121,9 +136,9 @@ export function CartPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  fill: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.gray[50],
   },
   centered: {
     flex: 1,
@@ -131,18 +146,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.md,
     padding: spacing.xl,
+  },
+  header: {
     backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  title: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
   },
   listContent: {
     padding: spacing.md,
     gap: spacing.md,
     flexGrow: 1,
-  },
-  title: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.bold,
-    color: colors.gray[900],
-    marginBottom: spacing.xs,
   },
   helperText: {
     fontSize: typography.size.md,
