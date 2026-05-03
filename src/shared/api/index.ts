@@ -1,1 +1,1 @@
-export { ApiError, apiGet, apiPost, apiPostForm, setAuthToken } from "./client";
+export { ApiError, apiGet, apiPost, apiPostForm, apiPatch, apiDelete, apiDeleteWithBody, setAuthToken } from "./client";
