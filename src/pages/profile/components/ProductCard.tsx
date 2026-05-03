@@ -1,25 +1,52 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet, ViewStyle } from "react-native";
-import { Product, ProductCondition } from "../types";
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import type { Product } from "@/entities/product";
+import { colors, typography, spacing, radius } from "@/shared/styles";
+
+const SCREEN_W = Dimensions.get("window").width;
+// Profile content has paddingHorizontal: spacing.md on each side, column gap: spacing.sm
+export const CARD_W = (SCREEN_W - spacing.md * 2 - spacing.sm) / 2;
 
 interface Props {
   product: Product;
   onPress?: () => void;
+  onEdit?: () => void;
+  onPreview?: () => void;
 }
 
-export function ProductCard({ product, onPress }: Props) {
+export function ProductCard({ product, onPress, onEdit, onPreview }: Props) {
+  const firstImage = product.images?.[0];
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-      <Image source={{ uri: product.image }} style={styles.image} />
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>
-          {product.title}
-        </Text>
-        <Text style={styles.price}>{formatPrice(product.price)}</Text>
-        {product.condition && (
-          <View style={[styles.badge, conditionStyles[product.condition]]}>
-            <Text style={styles.badgeText}>{product.condition}</Text>
-          </View>
-        )}
+    <TouchableOpacity style={styles.card} onPress={onPress ?? onPreview} activeOpacity={0.82}>
+      <View style={styles.imageContainer}>
+        {firstImage
+          ? <Image source={{ uri: firstImage }} style={styles.cardImage} resizeMode="cover" />
+          : <View style={[styles.cardImage, styles.imagePlaceholder]}>
+              <Ionicons name="image-outline" size={32} color={colors.gray[300]} />
+            </View>
+        }
+      </View>
+      <View style={styles.cardBody}>
+        <Text style={styles.cardTitle} numberOfLines={2}>{product.title}</Text>
+        <Text style={styles.cardPrice}>${product.price.toFixed(2)}</Text>
+        <Text style={styles.cardCategory} numberOfLines={1}>{product.category}</Text>
+      </View>
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={onEdit}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <Ionicons name="create-outline" size={17} color={colors.gray[500]} />
+        </TouchableOpacity>
+        <View style={styles.actionDivider} />
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={onPreview}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <Ionicons name="eye-outline" size={17} color={colors.gray[500]} />
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -27,60 +54,42 @@ export function ProductCard({ product, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    width: CARD_W,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
   },
-  image: {
-    width: "100%",
-    aspectRatio: 1,
-  },
-  info: {
-    padding: 12,
-  },
-  title: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#111827",
+  imageContainer: { width: "100%", aspectRatio: 1 },
+  cardImage: { width: "100%", height: "100%", backgroundColor: colors.gray[100] },
+  imagePlaceholder: { alignItems: "center", justifyContent: "center" },
+  cardBody: { padding: spacing.sm, gap: 2 },
+  cardTitle: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[900],
     lineHeight: 18,
   },
-  price: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#f97316",
-    marginTop: 4,
+  cardPrice: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.brand[500],
   },
-  badge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 99,
-    marginTop: 6,
+  cardCategory: { fontSize: 12, color: colors.gray[400] },
+  actionRow: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[100],
   },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "600",
+  actionBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.sm,
+  },
+  actionDivider: {
+    width: 1,
+    backgroundColor: colors.gray[100],
   },
 });
-
-const conditionStyles: Record<ProductCondition, ViewStyle> = {
-  Nuevo: {
-    backgroundColor: "#ecfdf5",
-  },
-  Usado: {
-    backgroundColor: "#eff6ff",
-  },
-  Reacondicionado: {
-    backgroundColor: "#fff7ed",
-  },
-};
-
-function formatPrice(price: number) {
-  return `AR$ ${price.toLocaleString("es-AR")}`;
-}

@@ -1,88 +1,89 @@
-import { colors, typography } from "@/shared/styles";
-
 import { useState } from "react";
-import { ScrollView, View, StyleSheet, Alert } from "react-native";
+import { ScrollView, View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
 import { setAuthToken } from "@/shared/api";
-import { Product, Tab } from "./types";
+import { useProducts } from "@/entities/product";
+import { colors, typography, spacing } from "@/shared/styles";
+import { Tab } from "./types";
 
 import { ProfileHeader } from "./components/ProfileHeader";
 import { ProfileTabs } from "./components/ProfileTabs";
 import { ProductGrid } from "./components/ProductGrid";
 import { EmptyState } from "./components/EmptyState";
-import { SignOutButton } from "./components/SignOutButton";
+import { SettingsPanel } from "./components/SettingsPanel";
 
-interface Props {
-  // Si usás React Navigation:
-  // navigation: NativeStackNavigationProp<RootStackParamList>;
-  onNavigateToProduct?: (id: string | number) => void;
-  onSignOut?: () => void;
-  onEdit?: () => void;
-  onSettings?: () => void;
-}
+// TODO: reemplazar con el ID real del usuario autenticado cuando esté disponible en el token
+const SELLER_ID = "00000000-0000-0000-0000-000000000001";
 
-export function ProfilePage({
-  onNavigateToProduct,
-  onSignOut,
-  onEdit,
-  onSettings,
-}: Props) {
+export function ProfilePage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Tabs">>();
   const [tab, setTab] = useState<Tab>("publicaciones");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const handleSignOut = async () => {
-    // TODO: agregar logout backend cuando exista el endpoint.
+  const { data, isLoading } = useProducts({ sellerId: SELLER_ID });
+  const listings = data?.data ?? [];
+  const total = data?.total ?? 0;
+
+  const handleSignOut = () => {
     setAuthToken(null);
-    onSignOut?.();
     navigation.replace("Login");
   };
 
-  const favorites = PRODUCTS.filter((product) => product.isFavorite);
+  const handlePreview = (productId: string) => {
+    navigation.navigate("ProductDetail", { productId });
+  };
+
+  const handleEdit = (productId: string) => {
+    navigation.navigate("EditProduct", { productId });
+  };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
       <ProfileHeader
-        onEditPress={onEdit}
-        onSettingsPress={onSettings}
+        publicationsCount={total}
+        onSettingsPress={() => setSettingsOpen(true)}
       />
 
       <ProfileTabs activeTab={tab} onTabChange={setTab} />
 
       <View style={styles.content}>
         {tab === "publicaciones" ? (
-          MY_LISTINGS.length === 0 ? (
+          isLoading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="small" color={colors.brand[500]} />
+              <Text style={styles.loadingText}>Cargando publicaciones...</Text>
+            </View>
+          ) : listings.length === 0 ? (
             <EmptyState
-              icon={<Ionicons name="bag-outline" size={40} color="#d1d5db" />}
+              icon={<Ionicons name="bag-outline" size={40} color={colors.gray[300]} />}
               title="Sin publicaciones"
               subtitle="Publicá algo y empezá a vender"
             />
           ) : (
             <ProductGrid
-              items={MY_LISTINGS}
-              onProductPress={onNavigateToProduct}
+              items={listings}
+              onPreview={handlePreview}
+              onEdit={handleEdit}
             />
           )
         ) : (
-          favorites.length === 0 ? (
-            <EmptyState
-              icon={<Ionicons name="heart-outline" size={40} color="#d1d5db" />}
-              title="Sin favoritos"
-              subtitle="Guardá publicaciones que te interesen"
-            />
-          ) : (
-            <ProductGrid
-              items={favorites}
-              onProductPress={onNavigateToProduct}
-            />
-          )
+          <EmptyState
+            icon={<Ionicons name="heart-outline" size={40} color={colors.gray[300]} />}
+            title="Sin favoritos"
+            subtitle="Guardá publicaciones que te interesen"
+          />
         )}
-
-        <SignOutButton onPress={handleSignOut} />
       </View>
+
+      <SettingsPanel
+        visible={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSignOut={handleSignOut}
+      />
 
     </ScrollView>
   );
@@ -91,79 +92,19 @@ export function ProfilePage({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafb",
+    backgroundColor: colors.gray[50],
   },
   content: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  centered: {
+    alignItems: "center",
+    paddingVertical: 48,
+    gap: spacing.sm,
+  },
+  loadingText: {
+    fontSize: typography.size.sm,
+    color: colors.gray[500],
   },
 });
-
-
-// SAMPLE-DATA --------------------------------
-// Should replace with real API data when profile microservice is ready.
-
-const CURRENT_USER_ID = "user-1";
-
-const PRODUCTS: Product[] = [
-  {
-    id: "1",
-    title: "iPhone 13 128 GB",
-    price: 780000,
-    image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=900&q=80",
-    condition: "Usado",
-    isFavorite: true,
-    description: "Excelente estado, incluye caja y cargador.",
-    sellerId: CURRENT_USER_ID,
-    category: "Electrónica",
-    status: "active",
-    createdAt: "2026-03-21T12:00:00.000Z",
-    updatedAt: "2026-03-24T12:00:00.000Z",
-  },
-  {
-    id: "2",
-    title: "Silla ergonómica de escritorio",
-    price: 245000,
-    image: "https://images.unsplash.com/photo-1505797149-2f2f2d9f6f4f?w=900&q=80",
-    condition: "Nuevo",
-    isFavorite: false,
-    description: "Ideal para home office, casi sin uso.",
-    sellerId: CURRENT_USER_ID,
-    category: "Hogar",
-    status: "active",
-    createdAt: "2026-04-01T09:30:00.000Z",
-    updatedAt: "2026-04-02T09:30:00.000Z",
-  },
-  {
-    id: "3",
-    title: "Bicicleta rodado 29",
-    price: 410000,
-    image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=900&q=80",
-    condition: "Reacondicionado",
-    isFavorite: true,
-    description: "Revisada y lista para usar todos los días.",
-    sellerId: "user-2",
-    category: "Deportes",
-    status: "active",
-    createdAt: "2026-04-12T16:15:00.000Z",
-    updatedAt: "2026-04-14T16:15:00.000Z",
-  },
-  {
-    id: "4",
-    title: "Notebook Lenovo ThinkPad",
-    price: 920000,
-    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=900&q=80",
-    condition: "Usado",
-    isFavorite: false,
-    description: "Excelente para estudio y desarrollo.",
-    sellerId: "user-2",
-    category: "Electrónica",
-    status: "active",
-    createdAt: "2026-04-16T11:00:00.000Z",
-    updatedAt: "2026-04-18T11:00:00.000Z",
-  },
-];
-
-const MY_LISTINGS = PRODUCTS.filter((product) => product.sellerId === CURRENT_USER_ID);
-
-
