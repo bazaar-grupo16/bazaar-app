@@ -28,10 +28,6 @@
         }
       ]
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static"
-    },
     "scheme": "bazaar",
     "extra": {
       "eas": {

@@ -1,5 +1,5 @@
-import { apiGet, apiPostForm } from "@/shared/api";
-import type { ProductListParams, ProductListResponse, ProductResponse } from "../model/types";
+import { apiGet, apiPostForm, apiPatch, apiDeleteWithBody } from "@/shared/api";
+import type { ProductListParams, ProductListResponse, ProductResponse, UpdateProductBody } from "../model/types";
 
 function toQueryString(params: ProductListParams) {
   const searchParams = new URLSearchParams();
@@ -66,4 +66,23 @@ export interface ShareLinkResponse {
 
 export function getProductShareLink(productId: string) {
   return apiGet<ShareLinkResponse>(`/catalog/products/${productId}/share-link`);
+}
+
+export function updateProduct(productId: string, body: UpdateProductBody) {
+  return apiPatch<ProductResponse>(`/catalog/products/${productId}`, body);
+}
+
+export function addProductImages(productId: string, formData: FormData) {
+  return apiPostForm<ProductResponse>(`/catalog/products/${productId}/images`, formData);
+}
+
+export function deleteProductImages(productId: string, urls: string[]) {
+  return apiDeleteWithBody<ProductResponse>(
+    `/catalog/products/${productId}/images`,
+    { urls }
+  );
+}
+
+export function reorderProductImages(productId: string, urls: string[]) {
+  return apiPatch<ProductResponse>(`/catalog/products/${productId}/images/order`, { urls });
 }
