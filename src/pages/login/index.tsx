@@ -9,7 +9,10 @@ import {
   StatusBar,
   TextInput,
   ScrollView,
-  Alert
+  Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -19,8 +22,10 @@ import { colors, typography, spacing } from "@/shared/styles/theme";
 import { FormButton } from "@/shared/ui/FormButton";
 import { Ionicons } from '@expo/vector-icons';
 
-import { loginUser, registerUser } from "@/entities/user";
+import { loginUser, registerUser,sendForgotPasswordEmail, verifyResetCode, resetPassword} from "@/entities/user";
 import { ApiError, setAuthToken } from "@/shared/api";
+import { Button } from "@/shared/ui/Button";
+
 
 const HERO_IMAGE = "https://images.unsplash.com/photo-1548335684-7d082b06d74d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWJyYW50JTIwY29sb3JmdWwlMjBtYXJrZXQlMjBwcm9kdWN0cyUyMG92ZXJoZWFkfGVufDF8fHx8MTc3NTQ4MzI1Mnww&ixlib=rb-4.1.0&q=80&w=1080";
 
@@ -43,6 +48,14 @@ export function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
+
+  const [isForgotModalVisible, setIsForgotModalVisible] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+
+  const [resetStep, setResetStep] = useState<"email" | "code" | "password">("email");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // backend-login
   async function handleLogin() {
@@ -105,16 +118,93 @@ export function LoginPage() {
             if (err.status === 400) {
               setError("Ese email ya se encuentra registrado");
             } else if (err.status === 422) {
-              setError("Email inválido o contraseña muy débil");
+              setError("Verificá que el email sea válido y que la contraseña cumpla los requisitos (tocá el ícono ?).");
             } else {
               setError(`Error del servidor (${err.status})`);
             }
           } else {
-            setError("Error de conexión. Revisar Back");
-          }
+                      setError("Error de conexión. Revisar Back");
+                    }
+
         } finally {
           setIsLoading(false);
         }
+  }
+
+  async function handleSendResetEmail() {
+    if (!forgotEmail) {
+      Alert.alert("Atención", "Ingresá tu email para continuar.");
+      return;
+    }
+    
+    try {
+      
+      await sendForgotPasswordEmail(forgotEmail);
+      setResetStep("code");
+      Alert.alert(
+        "¡Email enviado!", 
+        "Si el correo está registrado, recibirás un código de 6 dígitos en tu bandeja de entrada."
+      );
+      
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        Alert.alert("Error del servidor", `Ocurrió un problema (${err.status}). Intentá más tarde.`);
+      } else {
+        Alert.alert("Error de conexión", "No se pudo comunicar con el servidor.");
+      }
+    }
+  }
+
+  async function handleVerifyCode() {
+    if (!verificationCode) return Alert.alert("Atención", "Ingresá el código.");
+    try {
+      await verifyResetCode({ email: forgotEmail, code: verificationCode });
+      setResetStep("password");
+    } catch (err: any) {
+      Alert.alert("Error", "El código es incorrecto o ha expirado.");
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!newPassword) return Alert.alert("Atención", "Ingresá tu nueva contraseña.");
+    try {
+      await resetPassword({ 
+        email: forgotEmail, 
+        code: verificationCode, 
+        new_password: newPassword 
+      });
+      Alert.alert("¡Éxito!", "Tu contraseña ha sido actualizada.");
+      closeForgotModal();
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        if (err.status === 422) {
+          Alert.alert(
+            "Contraseña débil", 
+            "La contraseña no cumple con los requisitos de seguridad. Tocá el ícono (?) para revisarlos."
+          );
+        } else {
+          Alert.alert("Error del servidor", `No se pudo actualizar (${err.status}).`);
+        }
+      } else {
+        Alert.alert("Error", "No se pudo conectar con el servidor.");
+      }
+    }
+  }
+
+  function closeForgotModal() {
+    setIsForgotModalVisible(false);
+    setResetStep("email");
+    setForgotEmail("");
+    setVerificationCode("");
+    setNewPassword("");
+    setShowNewPassword(false);
+  }
+
+  function showPasswordHint() {
+    Alert.alert(
+      "Seguridad de la contraseña",
+      "Para proteger tu cuenta, la contraseña debe tener al menos:\n\n• 1 letra mayúscula\n• 1 letra minúscula\n• 2 números\n• 1 carácter especial (!@#$%^&*)"
+    );
   }
 
   return (
@@ -208,6 +298,12 @@ export function LoginPage() {
                 </View>    
               </View>
 
+              <View style={styles.forgotPasswordRow}>
+                <TouchableOpacity onPress={() => setIsForgotModalVisible(true)}>
+                  <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+                </TouchableOpacity>
+              </View>
+
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <FormButton onPress={handleLogin} style={{ marginTop: spacing.sm }}>
@@ -241,7 +337,12 @@ export function LoginPage() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Contraseña</Text>
+                <View style={styles.labelRow}>
+                  <Text style={[styles.label, { marginBottom: 0 }]}>Contraseña</Text>
+                  <TouchableOpacity onPress={showPasswordHint} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="help-circle-outline" size={20} color={colors.gray[500]} />
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.passwordWrapper}>
                   <TextInput
                     style={styles.passwordInput}
@@ -286,6 +387,101 @@ export function LoginPage() {
           </View>
         </ScrollView>
       </View>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isForgotModalVisible}
+        onRequestClose={closeForgotModal}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+       <View style={styles.modalContainer}>
+            {resetStep === "email" && (
+              <>
+                <Text style={styles.modalTitle}>Recuperar Contraseña</Text>
+                <Text style={styles.modalSubtitle}>
+                  Ingresá tu email y te enviaremos las instrucciones para restablecerla.
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="tu@email.com"
+                  placeholderTextColor={colors.gray[300]}
+                  value={forgotEmail}
+                  onChangeText={setForgotEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                <View style={styles.modalActions}>
+                  <Button variant="ghost" onPress={closeForgotModal}>Cancelar</Button>
+                  <Button variant="primary" onPress={handleSendResetEmail}>Enviar</Button>
+                </View>
+              </>
+            )}
+
+            {resetStep === "code" && (
+              <>
+                <Text style={styles.modalTitle}>Verificar Código</Text>
+                <Text style={styles.modalSubtitle}>
+                  Ingresá el código de 6 dígitos que enviamos a tu correo.
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="123456"
+                  placeholderTextColor={colors.gray[300]}
+                  value={verificationCode}
+                  onChangeText={setVerificationCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+                <View style={styles.modalActions}>
+                  <Button variant="ghost" onPress={closeForgotModal}>Cancelar</Button>
+                  <Button variant="primary" onPress={handleVerifyCode}>Verificar</Button>
+                </View>
+              </>
+            )}
+
+            {resetStep === "password" && (
+              <>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs }}>
+                  <Text style={[styles.modalTitle, { marginBottom: 0 }]}>Nueva Contraseña</Text>
+                  <TouchableOpacity onPress={showPasswordHint} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="help-circle-outline" size={22} color={colors.gray[500]} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.modalSubtitle}>
+                  Ingresá tu nueva clave para acceder a Bazaar.
+                </Text>
+                <View style={[styles.passwordWrapper, { marginBottom: spacing.lg }]}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Nueva contraseña"
+                    placeholderTextColor={colors.gray[300]}
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry={!showNewPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    <Ionicons
+                      name={showNewPassword ? "eye-off-outline" : "eye-outline"}
+                      size={22}
+                      color={colors.gray[500]}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.modalActions}>
+                  <Button variant="ghost" onPress={closeForgotModal}>Cancelar</Button>
+                  <Button variant="primary" onPress={handleResetPassword}>Guardar</Button>
+                </View>
+              </>
+            )}
+          </View> 
+          </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -463,5 +659,61 @@ const styles = StyleSheet.create({
     color: colors.brand[500],
     fontSize: 13,
     fontWeight: typography.weight.bold,
+  },
+  forgotPasswordRow: {
+    alignItems: 'center',
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+  },
+  forgotPasswordText: {
+    color: colors.brand[500],
+    fontSize: 13,
+    fontWeight: typography.weight.semibold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 24,
+    padding: spacing.lg,
+    width: '100%',
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+    marginBottom: spacing.xs,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.gray[500],
+    marginBottom: spacing.lg,
+    lineHeight: 20,
+  },
+  modalInput: {
+    backgroundColor: colors.gray[50],
+    borderWidth: 1,
+    borderColor: colors.gray[100],
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    fontSize: typography.size.md,
+    color: colors.gray[900],
+    marginBottom: spacing.lg,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
   }
 });
