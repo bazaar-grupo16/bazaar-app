@@ -26,6 +26,7 @@ import * as Linking from "expo-linking";
 import { useProduct, getProductShareLink } from "@/entities/product";
 import type { Product } from "@/entities/product";
 import { useAddToCart, useCart } from "@/entities/cart";
+import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
 import { ApiError, apiGet } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
@@ -126,8 +127,20 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const isOutOfStock = product.status === "out_of_stock";
 
   const [quantity, setQuantity] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [sellerModalVisible, setSellerModalVisible] = useState(false);
+
+  const { data: wishlistData } = useWishlist();
+  const isWishlisted = wishlistData?.items.some((i) => i.product_id === product.id) ?? false;
+  const addToWishlist = useAddToWishlist();
+  const removeFromWishlist = useRemoveFromWishlist();
+
+  const toggleWishlist = () => {
+    if (isWishlisted) {
+      removeFromWishlist.mutate(product.id);
+    } else {
+      addToWishlist.mutate(product.id);
+    }
+  };
 
   const { data: cartData } = useCart(1001);
   const cartQty = cartData?.data.items.find((i) => i.productId === product.id)?.quantity ?? 0;
@@ -208,9 +221,9 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
             <GlassButton icon="chevron-back" onPress={onBack} />
             <View style={styles.topBarRight}>
               <GlassButton
-                icon={isFavorite ? "heart" : "heart-outline"}
-                iconColor={isFavorite ? colors.brand[400] : colors.white}
-                onPress={() => setIsFavorite((v) => !v)}
+                icon={isWishlisted ? "heart" : "heart-outline"}
+                iconColor={isWishlisted ? colors.brand[400] : colors.white}
+                onPress={toggleWishlist}
               />
               {!isInactive && (
                 <GlassButton

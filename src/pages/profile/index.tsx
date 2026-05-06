@@ -15,6 +15,7 @@ import { PublicationsSubTabs } from "./components/PublicationsSubTabs";
 import { ProductGrid } from "./components/ProductGrid";
 import { EmptyState } from "./components/EmptyState";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { WishlistTab } from "./components/WishlistTab";
 
 // TODO: reemplazar con el ID real del usuario autenticado cuando esté disponible en el token
 const SELLER_ID = "00000000-0000-0000-0000-000000000001";
@@ -105,11 +106,7 @@ export function ProfilePage() {
             </View>
           </>
         ) : (
-          <EmptyState
-            icon={<Ionicons name="heart-outline" size={40} color={colors.gray[300]} />}
-            title="Sin favoritos"
-            subtitle="Guardá publicaciones que te interesen"
-          />
+          <WishlistTab />
         )}
       </View>
 
