@@ -42,33 +42,33 @@ async function wrapRequest<TResponse>(request: Promise<{ data: TResponse }>, ope
 
 // ---------- Endpoints ----------
 
-export function getCart(userId: number) {
+export function getCart(userId: string) {
   return wrapRequest<CartResponse>(protectedApi.get(`/cart/${userId}`), "GET");
 }
 
-export function addToCart(userId: number, productId: string, quantity: number = 1) {
+export function addToCart(userId: string, productId: string, quantity: number = 1) {
   return wrapRequest<CartItemResponse>(
     protectedApi.post(`/cart/${userId}/items`, { productId, quantity }),
     "POST",
   );
 }
 
-export function removeCartItem(userId: number, productId: string) {
+export function removeCartItem(userId: string, productId: string) {
   return wrapRequest<void>(protectedApi.delete(`/cart/${userId}/items/${productId}`), "DELETE");
 }
 
-export function clearCart(userId: number) {
+export function clearCart(userId: string) {
   return wrapRequest<void>(protectedApi.delete(`/cart/${userId}`), "DELETE");
 }
 
-export function incrementCartItem(userId: number, productId: string, quantity: number) {
+export function incrementCartItem(userId: string, productId: string, quantity: number) {
   return wrapRequest<void>(
     protectedApi.put(`/cart/${userId}/${productId}/increment`, { quantity }),
     "PUT",
   );
 }
 
-export function decrementCartItem(userId: number, productId: string, quantity: number) {
+export function decrementCartItem(userId: string, productId: string, quantity: number) {
   return wrapRequest<void>(
     protectedApi.put(`/cart/${userId}/${productId}/decrement`, { quantity }),
     "PUT",

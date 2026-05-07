@@ -5,4 +5,5 @@ export {
   persistAuthSession,
   refreshAuthSession,
   useAuthStore,
+  useSessionUserId,
 } from "./session";

@@ -1,6 +1,7 @@
 import { isAxiosError } from "axios";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
+import { jwtDecode } from "jwt-decode";
 
 import { publicApi } from "@/shared/api/http";
 import type { TokenCreateResponse } from "@/entities/user/model";
@@ -20,6 +21,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAccessToken: (token) => set({ accessToken: token }),
   setHydrating: (value) => set({ isHydrating: value }),
 }));
+
+export function useSessionUserId(): string | null {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  if (!accessToken) return null;
+  try {
+    const decoded = jwtDecode<{ sub?: string; user_id?: string; id?: string }>(accessToken);
+    return decoded.sub || decoded.user_id || decoded.id || null;
+  } catch (err) {
+    return null;
+  }
+}
 
 let refreshPromise: Promise<TokenCreateResponse | null> | null = null;
 

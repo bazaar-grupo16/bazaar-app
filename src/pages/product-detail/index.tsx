@@ -129,7 +129,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const [isFavorite, setIsFavorite] = useState(false);
   const [sellerModalVisible, setSellerModalVisible] = useState(false);
 
-  const { data: cartData } = useCart(1001);
+  const { data: cartData } = useCart();
   const cartQty = cartData?.data.items.find((i) => i.productId === product.id)?.quantity ?? 0;
   const maxToAdd = Math.max(0, product.stock - cartQty);
   const canAddToCart = !isInactive && !isOutOfStock && maxToAdd > 0;
@@ -138,7 +138,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
     if (maxToAdd > 0 && quantity > maxToAdd) setQuantity(maxToAdd);
   }, [maxToAdd, quantity]);
 
-  const addToCart = useAddToCart(1001);
+  const addToCart = useAddToCart();
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
