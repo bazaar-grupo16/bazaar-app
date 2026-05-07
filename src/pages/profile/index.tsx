@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScrollView, View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -9,6 +9,9 @@ import { useProducts } from "@/entities/product";
 import { colors, typography, spacing } from "@/shared/styles";
 import type { Tab, PublicationsSubTab } from "./types";
 
+import { getMyProfile } from "@/entities/profile/api/profile";
+import type { Profile } from "@/entities/profile/model/types";
+
 import { ProfileHeader } from "./components/ProfileHeader";
 import { ProfileTabs } from "./components/ProfileTabs";
 import { PublicationsSubTabs } from "./components/PublicationsSubTabs";
@@ -16,7 +19,6 @@ import { ProductGrid } from "./components/ProductGrid";
 import { EmptyState } from "./components/EmptyState";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { WishlistTab } from "./components/WishlistTab";
-
 // TODO: reemplazar con el ID real del usuario autenticado cuando esté disponible en el token
 const SELLER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -31,6 +33,23 @@ export function ProfilePage() {
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const profileData = await getMyProfile();
+        setUserProfile(profileData);
+      } catch (error) {
+        console.error("Error al cargar el perfil:", error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    }
+    loadProfile();
+  }, []);
 
   const { data, isLoading } = useProducts({ sellerId: SELLER_ID, includeInactive: true });
   const allListings = data?.data ?? [];
@@ -69,6 +88,9 @@ export function ProfilePage() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
       <ProfileHeader
+        name={isLoadingProfile ? "Cargando..." : (userProfile?.name ?? "Usuario")}
+        bio={userProfile?.description ?? null}
+        avatarUrl={userProfile?.profile_picture_url ?? null}
         publicationsCount={activeListings.length}
         onSettingsPress={() => setSettingsOpen(true)}
       />
@@ -106,7 +128,11 @@ export function ProfilePage() {
             </View>
           </>
         ) : (
-          <WishlistTab />
+          <EmptyState
+            icon={<Ionicons name="heart-outline" size={40} color={colors.gray[300]} />}
+            title="Sin favoritos"
+            subtitle="Guardá publicaciones que te interesen"
+          />
         )}
       </View>
 
