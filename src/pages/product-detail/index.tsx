@@ -64,7 +64,7 @@ export function ProductDetailPage() {
       </SafeAreaView>
     );
   }
-  
+
   if (data?.data.status === "inactive") {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -143,7 +143,6 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
     }
   };
 
-  const { data: cartData } = useCart(1001);
   const cartQty = cartData?.data.items.find((i) => i.productId === product.id)?.quantity ?? 0;
   const maxToAdd = Math.max(0, product.stock - cartQty);
   const canAddToCart = !isInactive && !isOutOfStock && maxToAdd > 0;
