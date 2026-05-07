@@ -8,7 +8,7 @@ import {
 } from "../api/cart";
 import { cartKeys } from "./queries";
 
-export function useAddToCart(userId: number) {
+export function useAddToCart(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -19,7 +19,7 @@ export function useAddToCart(userId: number) {
   });
 }
 
-export function useRemoveCartItem(userId: number) {
+export function useRemoveCartItem(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -30,7 +30,7 @@ export function useRemoveCartItem(userId: number) {
   });
 }
 
-export function useClearCart(userId: number) {
+export function useClearCart(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -41,7 +41,7 @@ export function useClearCart(userId: number) {
   });
 }
 
-export function useIncrementCartItem(userId: number) {
+export function useIncrementCartItem(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -58,7 +58,7 @@ export function useIncrementCartItem(userId: number) {
   });
 }
 
-export function useDecrementCartItem(userId: number) {
+export function useDecrementCartItem(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({

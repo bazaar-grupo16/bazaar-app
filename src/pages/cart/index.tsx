@@ -15,7 +15,7 @@ import { colors, spacing, typography } from "@/shared/styles";
 import { CartItemCard } from "./components/CartItemCard";
 import { CartSummary } from "./components/CartSummary";
 
-const USER_ID = 1001;
+const USER_ID = "fda8c09c-8ba9-4e4a-8417-f3f41e1f9f71";
 
 export function CartPage() {
   const insets = useSafeAreaInsets();

@@ -121,6 +121,8 @@ export function ProductDetailPage() {
 
 type AddToCartFeedback = "idle" | "loading" | "success" | "error";
 
+const USER_ID = "fda8c09c-8ba9-4e4a-8417-f3f41e1f9f71";
+
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
   const insets = useSafeAreaInsets();
   const isInactive = product.status === "inactive";
@@ -142,7 +144,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
     }
   };
 
-  const { data: cartData } = useCart(1001);
+  const { data: cartData } = useCart(USER_ID);
   const cartQty = cartData?.data.items.find((i) => i.productId === product.id)?.quantity ?? 0;
   const maxToAdd = Math.max(0, product.stock - cartQty);
   const canAddToCart = !isInactive && !isOutOfStock && maxToAdd > 0;
@@ -151,7 +153,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
     if (maxToAdd > 0 && quantity > maxToAdd) setQuantity(maxToAdd);
   }, [maxToAdd, quantity]);
 
-  const addToCart = useAddToCart(1001);
+  const addToCart = useAddToCart(USER_ID);
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);

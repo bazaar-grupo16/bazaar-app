@@ -79,26 +79,26 @@ async function cartMutate(
 
 // ---------- Endpoints ----------
 
-export function getCart(userId: number) {
+export function getCart(userId: string) {
   return cartGet<CartResponse>(`/cart/${userId}`);
 }
 
-export function addToCart(userId: number, productId: string, quantity: number = 1) {
+export function addToCart(userId: string, productId: string, quantity: number = 1) {
   return cartMutate("POST", `/cart/${userId}/items`, { productId, quantity }).then(
     (res) => res.json() as Promise<CartItemResponse>,
   );
 }
 
-export function removeCartItem(userId: number, productId: string) {
+export function removeCartItem(userId: string, productId: string) {
   return cartMutate("DELETE", `/cart/${userId}/items/${productId}`);
 }
 
-export function clearCart(userId: number) {
+export function clearCart(userId: string) {
   return cartMutate("DELETE", `/cart/${userId}`);
 }
 
 export function incrementCartItem(
-  userId: number,
+  userId: string,
   productId: string,
   quantity: number,
 ) {
@@ -108,7 +108,7 @@ export function incrementCartItem(
 }
 
 export function decrementCartItem(
-  userId: number,
+  userId: string,
   productId: string,
   quantity: number,
 ) {
