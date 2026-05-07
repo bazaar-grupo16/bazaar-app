@@ -14,18 +14,15 @@ import {
   KeyboardAvoidingView,
   Platform
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "@/navigation";
-
 import { colors, typography, spacing } from "@/shared/styles/theme";
 import { FormButton } from "@/shared/ui/FormButton";
 import { Ionicons } from '@expo/vector-icons';
 
 import { loginUser, registerUser,sendForgotPasswordEmail, verifyResetCode, resetPassword} from "@/entities/user";
-import { ApiError, setAuthToken } from "@/shared/api";
+import { ApiError } from "@/shared/api";
 import { Button } from "@/shared/ui/Button";
 
+import { persistAuthSession } from "@/shared/auth";
 
 const HERO_IMAGE = "https://images.unsplash.com/photo-1548335684-7d082b06d74d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWJyYW50JTIwY29sb3JmdWwlMjBtYXJrZXQlMjBwcm9kdWN0cyUyMG92ZXJoZWFkfGVufDF8fHx8MTc3NTQ4MzI1Mnww&ixlib=rb-4.1.0&q=80&w=1080";
 
@@ -33,7 +30,6 @@ type Tab = "login" | "register";
 const { height } = Dimensions.get("window");
 
 export function LoginPage() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Login">>();
   const [tab, setTab] = useState<Tab>("login");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -68,12 +64,27 @@ export function LoginPage() {
       setError("");
       setIsLoading(true);
 
+      console.log("[LoginPage] Starting login with email:", email);
+      
       const response = await loginUser({ email, password });
-      setAuthToken(response.access_token);
-      navigation.replace("Tabs");
+      console.log("[LoginPage] Login successful, received tokens:", { 
+        token_type: response.token_type,
+        expires_in: response.expires_in 
+      });
+      
+      await persistAuthSession(response);
+      console.log("[LoginPage] Auth session persisted successfully");
 
     } catch (err) {
+      console.error("[LoginPage] Login error:", err);
+      
       if (err instanceof ApiError) {
+        console.error("[LoginPage] ApiError details:", { 
+          status: err.status, 
+          message: err.message,
+          details: err.details 
+        });
+        
         if (err.status === 401) {
           setError("Email o contraseña incorrectos");
         } else if (err.status === 422) {
@@ -82,6 +93,8 @@ export function LoginPage() {
           setError(`Error del servidor (${err.status})`);
         }
       } else {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error("[LoginPage] Non-ApiError:", errorMsg);
         setError("Error de conexión. Revisá que el backend esté corriendo.");
       }
     } finally {

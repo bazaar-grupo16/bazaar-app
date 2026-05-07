@@ -16,7 +16,7 @@ export type CartItem = {
 };
 
 export type Cart = {
-  userId: number;
+  userId: string;
   items: CartItem[];
   totalPrice: Price;
 };

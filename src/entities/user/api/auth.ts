@@ -1,22 +1,34 @@
-import { apiPost } from "@/shared/api";
+import { publicApiPost } from "@/shared/api";
+import { normalizeTokenResponse } from "@/shared/auth";
 import type { LoginCredentials, RegisterCredentials, AuthResponse } from "../model";
 
 export async function loginUser(credentials: LoginCredentials): Promise<AuthResponse> {
-  return apiPost<AuthResponse, LoginCredentials>("/login", credentials);
+  console.log("[auth.ts] loginUser called with email:", credentials.email);
+  try {
+    const rawData = await publicApiPost<Record<string, unknown>>("/login", credentials);
+    console.log("[auth.ts] loginUser raw response:", rawData);
+    console.log("[auth.ts] loginUser response keys:", Object.keys(rawData));
+    const data = normalizeTokenResponse(rawData);
+    console.log("[auth.ts] loginUser successful, response type:", data.token_type);
+    return data;
+  } catch (error) {
+    console.error("[auth.ts] loginUser failed:", error);
+    throw error;
+  }
 }
 
 export async function registerUser(credentials: RegisterCredentials): Promise<void> {
-  return apiPost<void, RegisterCredentials>("/register", credentials);
+  await publicApiPost("/register", credentials);
 }
 
 export async function sendForgotPasswordEmail(email: string): Promise<void> {
-  return apiPost<void, { email: string }>("/forgot-password", { email });
+  return publicApiPost("/forgot-password", { email });
 }
 
 export async function verifyResetCode(data: { email: string; code: string }): Promise<void> {
-  return apiPost("/verify-code", data);
+  return publicApiPost("/verify-code", data);
 }
 
 export async function resetPassword(data: { email: string; code: string; new_password: string }): Promise<void> {
-  return apiPost("/reset-password", data);
+  return publicApiPost("/reset-password", data);
 }

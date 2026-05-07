@@ -15,15 +15,13 @@ import { colors, spacing, typography } from "@/shared/styles";
 import { CartItemCard } from "./components/CartItemCard";
 import { CartSummary } from "./components/CartSummary";
 
-const USER_ID = 1001;
-
 export function CartPage() {
   const insets = useSafeAreaInsets();
-  const { data, error, isLoading, isRefetching, refetch } = useCart(USER_ID);
-  const removeMutation = useRemoveCartItem(USER_ID);
-  const clearMutation = useClearCart(USER_ID);
-  const incrementMutation = useIncrementCartItem(USER_ID);
-  const decrementMutation = useDecrementCartItem(USER_ID);
+  const { data, error, isLoading, isRefetching, refetch } = useCart();
+  const removeMutation = useRemoveCartItem();
+  const clearMutation = useClearCart();
+  const incrementMutation = useIncrementCartItem();
+  const decrementMutation = useDecrementCartItem();
 
   const cart = data?.data;
   const items = cart?.items ?? [];

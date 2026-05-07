@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { setAuthToken } from "@/shared/api";
+import { clearAuthSession } from "@/shared/auth";
 import { useProducts } from "@/entities/product";
 import { colors, typography, spacing } from "@/shared/styles";
 import type { Tab, PublicationsSubTab } from "./types";
@@ -50,8 +50,8 @@ export function ProfilePage() {
     sinStock:  outOfStockListings.length,
   };
 
-  const handleSignOut = () => {
-    setAuthToken(null);
+  const handleSignOut = async () => {
+    await clearAuthSession();
     navigation.replace("Login");
   };
 

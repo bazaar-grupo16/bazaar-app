@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSessionUserId } from "@/shared/auth";
 import {
   addToCart,
   removeCartItem,
@@ -8,41 +9,54 @@ import {
 } from "../api/cart";
 import { cartKeys } from "./queries";
 
-export function useAddToCart(userId: number) {
+export function useAddToCart() {
   const queryClient = useQueryClient();
+  const userId = useSessionUserId();
 
   return useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity?: number }) => addToCart(userId, productId, quantity),
+    mutationFn: ({ productId, quantity }: { productId: string; quantity?: number }) => {
+      if (!userId) throw new Error("No user ID found");
+      return addToCart(userId, productId, quantity);
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
+      if (userId) void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
     },
   });
 }
 
-export function useRemoveCartItem(userId: number) {
+export function useRemoveCartItem() {
   const queryClient = useQueryClient();
+  const userId = useSessionUserId();
 
   return useMutation({
-    mutationFn: (productId: string) => removeCartItem(userId, productId),
+    mutationFn: (productId: string) => {
+      if (!userId) throw new Error("No user ID found");
+      return removeCartItem(userId, productId);
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
+      if (userId) void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
     },
   });
 }
 
-export function useClearCart(userId: number) {
+export function useClearCart() {
   const queryClient = useQueryClient();
+  const userId = useSessionUserId();
 
   return useMutation({
-    mutationFn: () => clearCart(userId),
+    mutationFn: () => {
+      if (!userId) throw new Error("No user ID found");
+      return clearCart(userId);
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
+      if (userId) void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
     },
   });
 }
 
-export function useIncrementCartItem(userId: number) {
+export function useIncrementCartItem() {
   const queryClient = useQueryClient();
+  const userId = useSessionUserId();
 
   return useMutation({
     mutationFn: ({
@@ -51,15 +65,19 @@ export function useIncrementCartItem(userId: number) {
     }: {
       productId: string;
       quantity: number;
-    }) => incrementCartItem(userId, productId, quantity),
+    }) => {
+      if (!userId) throw new Error("No user ID found");
+      return incrementCartItem(userId, productId, quantity);
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
+      if (userId) void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
     },
   });
 }
 
-export function useDecrementCartItem(userId: number) {
+export function useDecrementCartItem() {
   const queryClient = useQueryClient();
+  const userId = useSessionUserId();
 
   return useMutation({
     mutationFn: ({
@@ -68,9 +86,12 @@ export function useDecrementCartItem(userId: number) {
     }: {
       productId: string;
       quantity: number;
-    }) => decrementCartItem(userId, productId, quantity),
+    }) => {
+      if (!userId) throw new Error("No user ID found");
+      return decrementCartItem(userId, productId, quantity);
+    },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
+      if (userId) void queryClient.invalidateQueries({ queryKey: cartKeys.byUser(userId) });
     },
   });
 }

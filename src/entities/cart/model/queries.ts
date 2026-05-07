@@ -1,14 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { getCart } from "../api/cart";
+import { useSessionUserId } from "@/shared/auth";
 
 export const cartKeys = {
   all: ["cart"] as const,
-  byUser: (userId: number) => [...cartKeys.all, userId] as const,
+  byUser: (userId: string) => [...cartKeys.all, userId] as const,
 };
 
-export function useCart(userId: number) {
+export function useCart() {
+  const userId = useSessionUserId();
   return useQuery({
-    queryKey: cartKeys.byUser(userId),
-    queryFn: () => getCart(userId),
+    queryKey: userId ? cartKeys.byUser(userId) : cartKeys.all,
+    queryFn: () => {
+      if (!userId) throw new Error("No user ID found");
+      return getCart(userId);
+    },
+    enabled: !!userId,
   });
 }

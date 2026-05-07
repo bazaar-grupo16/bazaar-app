@@ -9,7 +9,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bazaar.app",
-      "associatedDomains": ["applinks:bazaar.pib.ar"]
+      "associatedDomains": [
+        "applinks:bazaar.pib.ar"
+      ]
     },
     "android": {
       "package": "com.bazaar.app",
@@ -24,9 +26,16 @@
               "pathPrefix": "/products"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
     },
     "scheme": "bazaar",
     "extra": {
@@ -34,6 +43,9 @@
         "projectId": "e732a3a7-c154-452b-9582-f87ac91ba8c9"
       }
     },
-    "owner": "valenpontaut"
+    "owner": "valenpontaut",
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
