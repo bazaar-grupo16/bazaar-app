@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useProducts, type Product } from "@/entities/product";
+import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { PRODUCT_CATEGORIES } from "@/shared/config/categories";
@@ -88,8 +89,11 @@ export function HomePage() {
   // Notifications panel
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
-  // Favorites (session-local)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  // Favorites (wishlist API)
+  const { data: wishlistData } = useWishlist();
+  const wishlistIds = new Set((wishlistData?.items ?? []).map((i) => i.product_id));
+  const addToWishlist = useAddToWishlist();
+  const removeFromWishlist = useRemoveFromWishlist();
 
   // Debounce search
   useEffect(() => {
@@ -160,12 +164,13 @@ export function HomePage() {
   const hasSearchIntent = !!searchQuery || !!selectedCategory || !!sortOption || hasPriceFilter;
   const hasInputSearch = !!searchQuery;
 
-  const toggleFavorite = (id: string) =>
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const toggleFavorite = (id: string) => {
+    if (wishlistIds.has(id)) {
+      removeFromWishlist.mutate(id);
+    } else {
+      addToWishlist.mutate(id);
+    }
+  };
 
   const loadMore = () => { if (hasMore && !isFetching) setQueryOffset((p) => p + PAGE_SIZE); };
 
@@ -409,7 +414,7 @@ export function HomePage() {
           renderItem={({ item }) => (
             <HomeProductCard
               product={item}
-              isFavorite={favorites.has(item.id)}
+              isFavorite={wishlistIds.has(item.id)}
               onFavorite={() => toggleFavorite(item.id)}
               onPress={() => navigation.navigate("ProductDetail", { productId: item.id })}
             />
