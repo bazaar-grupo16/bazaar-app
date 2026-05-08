@@ -1,5 +1,8 @@
 import { View, Text, StyleSheet } from "react-native";
 import type { Price } from "@/entities/cart";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "@/navigation";
 import { Button } from "@/shared/ui";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 
@@ -16,6 +19,8 @@ export function CartSummary({
   onClear,
   isClearing,
 }: CartSummaryProps) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   return (
     <View style={styles.container}>
       <View style={styles.totalRow}>
@@ -28,7 +33,10 @@ export function CartSummary({
         </View>
       </View>
 
-      <Button style={styles.checkoutButton}>
+      <Button 
+        style={styles.checkoutButton}
+        onPress={() => navigation.navigate("Checkout")}
+      >
         Ir a pagar
       </Button>
 

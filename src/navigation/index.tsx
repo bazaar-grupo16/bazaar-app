@@ -2,6 +2,11 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { LoginPage } from "@/pages/login";
 import { ProductDetailPage } from "@/pages/product-detail";
 import { EditProductPage } from "@/pages/product-edit";
+import { CheckoutPage } from "@/pages/checkout";
+import { PaymentDebugPage } from "@/pages/payment-debug";
+import { OrderPollingPage } from "@/pages/order-polling";
+import { OrderResultPage } from "@/pages/order-result";
+import { OrderDetailPage } from "@/pages/order-detail";
 import { TabsNavigator } from "./TabsNavigator";
 import type { LinkingOptions } from "@react-navigation/native";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
@@ -13,6 +18,11 @@ export type RootStackParamList = {
   Tabs: undefined;
   ProductDetail: { productId: string };
   EditProduct: { productId: string };
+  Checkout: undefined;
+  PaymentDebug: { orderId: string };
+  OrderPolling: { orderId: string };
+  OrderResult: { orderId: string };
+  OrderDetail: { orderId: string };
 };
 
 export const linking: LinkingOptions<RootStackParamList> = {
@@ -47,6 +57,11 @@ export function RootNavigator() {
         <Stack.Screen name="Tabs" component={TabsNavigator} />
         <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
         <Stack.Screen name="EditProduct" component={EditProductPage} />
+        <Stack.Screen name="Checkout" component={CheckoutPage} />
+        <Stack.Screen name="PaymentDebug" component={PaymentDebugPage} />
+        <Stack.Screen name="OrderPolling" component={OrderPollingPage} />
+        <Stack.Screen name="OrderResult" component={OrderResultPage} />
+        <Stack.Screen name="OrderDetail" component={OrderDetailPage} />
       </Stack.Navigator>
     ) : (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
