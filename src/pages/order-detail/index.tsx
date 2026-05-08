@@ -13,7 +13,15 @@ export function OrderDetailPage() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<OrderDetailRouteProp>();
-  const { orderId } = route.params;
+  const { orderId, fromCheckout } = route.params;
+
+  const handleBack = () => {
+    if (fromCheckout) {
+      navigation.navigate("Tabs");
+    } else {
+      navigation.goBack();
+    }
+  };
 
   const { data: order, isLoading } = useOrder(orderId, false);
 
@@ -21,7 +29,7 @@ export function OrderDetailPage() {
     return (
       <View style={[styles.fill, { paddingTop: insets.top }]}>
         <View style={styles.header}>
-          <Button variant="ghost" onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Button variant="ghost" onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.gray[900]} />
           </Button>
           <Text style={styles.pageTitle}>Detalle de Orden</Text>
@@ -37,7 +45,7 @@ export function OrderDetailPage() {
     return (
       <View style={[styles.fill, { paddingTop: insets.top }]}>
         <View style={styles.header}>
-          <Button variant="ghost" onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Button variant="ghost" onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.gray[900]} />
           </Button>
           <Text style={styles.pageTitle}>Detalle de Orden</Text>
@@ -60,7 +68,7 @@ export function OrderDetailPage() {
   return (
     <View style={[styles.fill, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Button variant="ghost" onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Button variant="ghost" onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.gray[900]} />
         </Button>
         <Text style={styles.pageTitle}>Detalle de Orden</Text>

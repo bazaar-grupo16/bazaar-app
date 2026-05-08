@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation";
 import { useOrder } from "@/entities/order";
 import { colors, spacing, typography } from "@/shared/styles";
+import { Button } from "@/shared/ui";
 
 type OrderPollingRouteProp = RouteProp<RootStackParamList, "OrderPolling">;
 
@@ -39,6 +40,14 @@ export function OrderPollingPage() {
         <Text style={styles.description}>
           Estamos confirmando tu transacción. Esto puede tomar unos segundos.
         </Text>
+
+        <Button
+          variant="ghost"
+          onPress={() => navigation.navigate("OrderDetail", { orderId, fromCheckout: true })}
+          style={styles.detailButton}
+        >
+          Ver detalle
+        </Button>
       </View>
     </View>
   );
@@ -66,5 +75,8 @@ const styles = StyleSheet.create({
     fontSize: typography.size.md,
     color: colors.gray[500],
     textAlign: "center",
+  },
+  detailButton: {
+    marginTop: spacing.lg,
   },
 });

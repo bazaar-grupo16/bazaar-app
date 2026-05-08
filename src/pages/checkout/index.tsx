@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation";
 import * as Crypto from "expo-crypto";
-import { useCreateOrder } from "@/entities/order";
+import { useCreateOrder, useCheckoutStore } from "@/entities/order";
 import { Button } from "@/shared/ui";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 
@@ -13,12 +13,13 @@ export function CheckoutPage() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { mutate: createOrder, isPending } = useCreateOrder();
+  const { lastAddress, setLastAddress } = useCheckoutStore();
 
-  const [street, setStreet] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zipCode, setZipCode] = useState("");
-  const [country, setCountry] = useState("");
+  const [street, setStreet] = useState(lastAddress?.street ?? "");
+  const [city, setCity] = useState(lastAddress?.city ?? "");
+  const [state, setState] = useState(lastAddress?.state ?? "");
+  const [zipCode, setZipCode] = useState(lastAddress?.zip_code ?? "");
+  const [country, setCountry] = useState(lastAddress?.country ?? "");
 
   const handleCheckout = () => {
     if (!street || !city || !state || !zipCode || !country) {
@@ -42,6 +43,8 @@ export function CheckoutPage() {
       { data: request, idempotencyKey },
       {
         onSuccess: (data) => {
+          // Save address for future use
+          setLastAddress(request.shipping_address);
           navigation.replace("PaymentDebug", { orderId: data.order_id });
         },
         onError: (error) => {
@@ -62,31 +65,31 @@ export function CheckoutPage() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.sectionTitle}>Dirección de envío</Text>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Calle y número</Text>
           <TextInput
             style={styles.input}
-            placeholder="Ej: Av. Siempreviva 742"
+            placeholder="Ej: Av. Paseo Colón 850"
             value={street}
             onChangeText={setStreet}
             editable={!isPending}
             placeholderTextColor={colors.gray[400]}
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Ciudad</Text>
           <TextInput
             style={styles.input}
-            placeholder="Ej: Springfield"
+            placeholder="Ej: Cdad. Autónoma de Buenos Aires"
             value={city}
             onChangeText={setCity}
             editable={!isPending}
             placeholderTextColor={colors.gray[400]}
           />
         </View>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Provincia / Estado</Text>
           <TextInput
@@ -98,17 +101,16 @@ export function CheckoutPage() {
             placeholderTextColor={colors.gray[400]}
           />
         </View>
-        
+
         <View style={styles.row}>
           <View style={styles.halfWidth}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Código Postal</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ej: 1234"
+                placeholder="Ej: C1063"
                 value={zipCode}
                 onChangeText={setZipCode}
-                keyboardType="numeric"
                 editable={!isPending}
                 placeholderTextColor={colors.gray[400]}
               />

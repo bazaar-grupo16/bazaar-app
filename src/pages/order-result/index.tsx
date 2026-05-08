@@ -70,18 +70,28 @@ export function OrderResultPage() {
         <View style={styles.actions}>
           {isError ? (
             <Button
-              onPress={() => navigation.navigate("Checkout")}
+              onPress={() => navigation.navigate("Tabs", { screen: "Cart" } as any)}
               style={styles.actionButton}
             >
-              Reintentar Pago
+              Volver al Carrito
             </Button>
           ) : (
-            <Button
-              onPress={() => navigation.navigate("Tabs")}
-              style={styles.actionButton}
-            >
-              Volver al Inicio
-            </Button>
+            <>
+              <Button
+                onPress={() => navigation.navigate("OrderDetail", { orderId, fromCheckout: true })}
+                style={[styles.actionButton, { marginBottom: spacing.sm }]}
+                variant="primary"
+              >
+                Ver detalle
+              </Button>
+              <Button
+                onPress={() => navigation.navigate("Tabs")}
+                style={styles.actionButton}
+                variant="ghost"
+              >
+                Volver al Inicio
+              </Button>
+            </>
           )}
         </View>
       </View>

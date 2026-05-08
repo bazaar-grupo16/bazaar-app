@@ -22,7 +22,7 @@ export type RootStackParamList = {
   PaymentDebug: { orderId: string };
   OrderPolling: { orderId: string };
   OrderResult: { orderId: string };
-  OrderDetail: { orderId: string };
+  OrderDetail: { orderId: string; fromCheckout?: boolean };
 };
 
 export const linking: LinkingOptions<RootStackParamList> = {
