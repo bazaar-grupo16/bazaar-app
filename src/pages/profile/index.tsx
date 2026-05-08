@@ -19,6 +19,7 @@ import { ProductGrid } from "./components/ProductGrid";
 import { EmptyState } from "./components/EmptyState";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { WishlistTab } from "./components/WishlistTab";
+import { EditProfileModal } from "./components/EditProfileModal";
 // TODO: reemplazar con el ID real del usuario autenticado cuando esté disponible en el token
 const SELLER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -33,6 +34,7 @@ export function ProfilePage() {
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -92,6 +94,7 @@ export function ProfilePage() {
         bio={userProfile?.description ?? null}
         avatarUrl={userProfile?.profile_picture_url ?? null}
         publicationsCount={activeListings.length}
+        onEditPress={() => setEditModalOpen(true)}
         onSettingsPress={() => setSettingsOpen(true)}
       />
 
@@ -141,7 +144,14 @@ export function ProfilePage() {
         onClose={() => setSettingsOpen(false)}
         onSignOut={handleSignOut}
       />
-
+      <EditProfileModal
+        visible={editModalOpen}
+        profile={userProfile}
+        onClose={() => setEditModalOpen(false)}
+        onSaveSuccess={(updatedProfile) => {
+          setUserProfile(updatedProfile); 
+        }}
+      />
     </ScrollView>
   );
 }
