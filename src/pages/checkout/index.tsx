@@ -13,7 +13,7 @@ export function CheckoutPage() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { mutate: createOrder, isPending } = useCreateOrder();
-  const { lastAddress, setLastAddress } = useCheckoutStore();
+  const { lastAddress, setLastAddress, currentIdempotencyKey, clearIdempotencyKey } = useCheckoutStore();
 
   const [street, setStreet] = useState(lastAddress?.street ?? "");
   const [city, setCity] = useState(lastAddress?.city ?? "");
@@ -27,7 +27,12 @@ export function CheckoutPage() {
       return;
     }
 
-    const idempotencyKey = Crypto.randomUUID();
+    // Use existing key or generate a new one if it's the first attempt
+    const idempotencyKey = currentIdempotencyKey || Crypto.randomUUID();
+    if (!currentIdempotencyKey) {
+      // Persist the key immediately so if the app crashes or user retries, we have it
+      useCheckoutStore.setState({ currentIdempotencyKey: idempotencyKey });
+    }
 
     const request = {
       shipping_address: {
@@ -43,7 +48,7 @@ export function CheckoutPage() {
       { data: request, idempotencyKey },
       {
         onSuccess: (data) => {
-          // Save address for future use
+          // Save address for future use (idempotency key is cleared later in OrderResultPage)
           setLastAddress(request.shipping_address);
           navigation.replace("PaymentDebug", { orderId: data.order_id });
         },
