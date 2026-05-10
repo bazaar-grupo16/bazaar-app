@@ -40,19 +40,15 @@ export function RootNavigator() {
   }
 
   return (
-    // Render different navigator trees depending on auth state so
-    // the app responds immediately when `accessToken` changes.
-    accessToken ? (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Tabs" component={TabsNavigator} />
-        <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
-        <Stack.Screen name="EditProduct" component={EditProductPage} />
-      </Stack.Navigator>
-    ) : (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginPage} />
-      </Stack.Navigator>
-    )
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName={accessToken ? "Tabs" : "Login"}
+    >
+      <Stack.Screen name="Login" component={LoginPage} />
+      <Stack.Screen name="Tabs" component={TabsNavigator} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
+      <Stack.Screen name="EditProduct" component={EditProductPage} />
+    </Stack.Navigator>
   );
 }
 
