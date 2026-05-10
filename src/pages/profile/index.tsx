@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { clearAuthSession } from "@/shared/auth";
+import { clearAuthSession, useSessionUserId } from "@/shared/auth";
 import { useProducts } from "@/entities/product";
 import { colors, typography, spacing } from "@/shared/styles";
 import type { Tab, PublicationsSubTab } from "./types";
@@ -21,7 +21,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { WishlistTab } from "./components/WishlistTab";
 import { EditProfileModal } from "./components/EditProfileModal";
 // TODO: reemplazar con el ID real del usuario autenticado cuando esté disponible en el token
-const SELLER_ID = "00000000-0000-0000-0000-000000000001";
+const SELLER_ID = useSessionUserId();
 
 const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: string }> = {
   activas:    { title: "Sin publicaciones activas",    subtitle: "Publicá algo y empezá a vender" },
@@ -53,7 +53,7 @@ export function ProfilePage() {
     loadProfile();
   }, []);
 
-  const { data, isLoading } = useProducts({ sellerId: SELLER_ID, includeInactive: true });
+  const { data, isLoading } = useProducts({ sellerId: SELLER_ID ?? "", includeInactive: true });
   const allListings = data?.data ?? [];
 
   const activeListings    = allListings.filter((p) => p.status === "active");

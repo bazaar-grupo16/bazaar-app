@@ -1,26 +1,28 @@
 import { apiGet, apiPatch, apiPostForm } from "@/shared/api/client";
 import type { Profile } from "../model/types";
+import { useAuthStore } from "@/shared/auth";
 
 export async function getMyProfile(): Promise<Profile> {
-  // Acomodar dsp la IP y puerto del backend correcto
-  return apiGet<Profile>("http://10.0.2.2:8001/profile/me");
+  return apiGet<Profile>("/profile/me");
 }
 
 export async function updateMyProfile(data: Partial<Profile>): Promise<Profile> {
-  return apiPatch<Profile>("http://10.0.2.2:8001/profile/me", data);
+  return apiPatch<Profile>("/profile/me", data);
 }
 
 export async function uploadAvatar(formData: FormData) {
   console.log("Intentando subir con fetch nativo...");
   
   try {
-    const response = await fetch("http://10.0.2.2:8001/profile/upload-avatar", {
+    const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL
+    const token = useAuthStore.getState().accessToken;
+
+    const response = await fetch(`${baseUrl}/profile/upload-avatar`, {
       method: "POST",
       headers: {
-        // Tu ID hardcodeado para que pase la validación
-        "x-user-id": "954b4d99-c1a4-48e7-8849-e9a84731fe45", 
+        "Authorization": `Bearer ${token}`
       },
-      body: formData, // Le pasamos el mismo formData que armaste como tus compañeros
+      body: formData,
     });
 
     if (!response.ok) {
