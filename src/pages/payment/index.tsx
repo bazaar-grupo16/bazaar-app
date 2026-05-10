@@ -100,11 +100,11 @@ function MercadoPagoPaymentPage() {
           </Button>
 
           <Button
-            onPress={() => navigation.replace("OrderPolling", { orderId })}
+            onPress={() => navigation.navigate("Tabs")}
             variant="ghost"
             style={styles.secondaryButton}
           >
-            Ir a OrderPolling
+            Volver al inicio
           </Button>
         </View>
 
