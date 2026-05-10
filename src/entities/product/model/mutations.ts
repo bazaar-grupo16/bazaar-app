@@ -20,6 +20,7 @@ export function useUpdateProduct(productId: string) {
     mutationFn: (body: UpdateProductBody) => updateProduct(productId, body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["my-products"] });
       void queryClient.invalidateQueries({ queryKey: ["product", productId] });
     },
   });
