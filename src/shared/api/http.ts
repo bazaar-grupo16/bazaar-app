@@ -8,7 +8,6 @@ export function getApiBaseUrl() {
   }
 
   const baseUrl = API_BASE_URL.replace(/\/$/, "");
-  console.log("[http.ts] API base URL:", baseUrl);
   return baseUrl;
 }
 
@@ -19,13 +18,9 @@ export const publicApi = axios.create({
   },
 });
 
-console.log("[http.ts] publicApi created with baseURL:", publicApi.defaults.baseURL);
-
 export const protectedApi = axios.create({
   baseURL: getApiBaseUrl(),
   headers: {
     Accept: "application/json",
   },
 });
-
-console.log("[http.ts] protectedApi created with baseURL:", protectedApi.defaults.baseURL);

@@ -23,7 +23,6 @@ import { PRODUCT_CATEGORIES } from "@/shared/config/categories";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import type { RootStackParamList } from "@/navigation";
 
-const SELLER_ID = "00000000-0000-0000-0000-000000000001"; // TODO: replace with auth
 const MAX_IMAGES = 5;
 const MAX_FILE_MB = 10;
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
@@ -212,7 +211,6 @@ export function PublishPage() {
     formData.append("price", parseFloat(form.price).toString());
     formData.append("stock", parseInt(form.stock, 10).toString());
     formData.append("category", form.category);
-    formData.append("seller_id", SELLER_ID);
 
     for (const img of images) {
       formData.append("files", {

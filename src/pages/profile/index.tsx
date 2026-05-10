@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
 import { clearAuthSession } from "@/shared/auth";
-import { useProducts } from "@/entities/product";
+import { useMyProducts } from "@/entities/product";
 import { colors, typography, spacing } from "@/shared/styles";
 import type { Tab, PublicationsSubTab } from "./types";
 
@@ -16,9 +16,6 @@ import { ProductGrid } from "./components/ProductGrid";
 import { EmptyState } from "./components/EmptyState";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { WishlistTab } from "./components/WishlistTab";
-
-// TODO: reemplazar con el ID real del usuario autenticado cuando esté disponible en el token
-const SELLER_ID = "00000000-0000-0000-0000-000000000001";
 
 const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: string }> = {
   activas:    { title: "Sin publicaciones activas",    subtitle: "Publicá algo y empezá a vender" },
@@ -32,7 +29,7 @@ export function ProfilePage() {
   const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const { data, isLoading } = useProducts({ sellerId: SELLER_ID, includeInactive: true });
+  const { data, isLoading } = useMyProducts();
   const allListings = data?.data ?? [];
 
   const activeListings    = allListings.filter((p) => p.status === "active");
