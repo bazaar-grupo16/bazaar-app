@@ -2,6 +2,11 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { LoginPage } from "@/pages/login";
 import { ProductDetailPage } from "@/pages/product-detail";
 import { EditProductPage } from "@/pages/product-edit";
+import { CheckoutPage } from "@/pages/checkout";
+import { PaymentPage } from "@/pages/payment";
+import { OrderPollingPage } from "@/pages/order-polling";
+import { OrderResultPage } from "@/pages/order-result";
+import { OrderDetailPage } from "@/pages/order-detail";
 import { TabsNavigator } from "./TabsNavigator";
 import type { LinkingOptions } from "@react-navigation/native";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
@@ -13,6 +18,11 @@ export type RootStackParamList = {
   Tabs: undefined;
   ProductDetail: { productId: string };
   EditProduct: { productId: string };
+  Checkout: undefined;
+  Payment: { orderId: string; initPoint: string };
+  OrderPolling: { orderId: string };
+  OrderResult: { orderId: string };
+  OrderDetail: { orderId: string; fromCheckout?: boolean };
 };
 
 export const linking: LinkingOptions<RootStackParamList> = {
@@ -21,6 +31,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
     screens: {
       Tabs: "",
       ProductDetail: "products/:productId",
+      OrderPolling: "order-polling/:orderId",
+      OrderResult: "order-result/:orderId",
     },
   },
 };
@@ -44,10 +56,14 @@ export function RootNavigator() {
       screenOptions={{ headerShown: false }}
       initialRouteName={accessToken ? "Tabs" : "Login"}
     >
-      <Stack.Screen name="Login" component={LoginPage} />
       <Stack.Screen name="Tabs" component={TabsNavigator} />
       <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
       <Stack.Screen name="EditProduct" component={EditProductPage} />
+      <Stack.Screen name="Checkout" component={CheckoutPage} />
+      <Stack.Screen name="Payment" component={PaymentPage} />
+      <Stack.Screen name="OrderPolling" component={OrderPollingPage} />
+      <Stack.Screen name="OrderResult" component={OrderResultPage} />
+      <Stack.Screen name="OrderDetail" component={OrderDetailPage} />
     </Stack.Navigator>
   );
 }
