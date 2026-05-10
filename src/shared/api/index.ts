@@ -1,1 +1,1 @@
-export { ApiError, apiDelete, apiDeleteWithBody, apiGet, apiPatch, apiPost, apiPostForm, publicApiPost } from "./client";
+export { ApiError, apiDelete, apiDeleteWithBody, apiGet, apiPatch, apiPost, apiPostForm, publicApiGet, publicApiPost } from "./client";

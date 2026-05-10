@@ -1,78 +1,81 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { Product } from "@/entities/product";
 import { colors, typography, spacing, radius } from "@/shared/styles";
 
-const SCREEN_W = Dimensions.get("window").width;
-// Profile content has paddingHorizontal: spacing.md on each side, column gap: spacing.sm
-export const CARD_W = (SCREEN_W - spacing.md * 2 - spacing.sm) / 2;
-
 interface Props {
   product: Product;
-  onPress?: () => void;
-  onEdit?: () => void;
   onPreview?: () => void;
+  onEdit?: () => void;
 }
 
-export function ProductCard({ product, onPress, onEdit, onPreview }: Props) {
+export function ProductCard({ product, onPreview, onEdit }: Props) {
   const firstImage = product.images?.[0];
+  const initial = product.title.charAt(0).toUpperCase();
+  const isInactive = product.status === "inactive";
+  const isOos = product.status === "out_of_stock";
+
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress ?? onPreview} activeOpacity={0.82}>
-      <View style={styles.imageContainer}>
-        {firstImage
-          ? <Image source={{ uri: firstImage }} style={styles.cardImage} resizeMode="cover" />
-          : <View style={[styles.cardImage, styles.imagePlaceholder]}>
-              <Ionicons name="image-outline" size={32} color={colors.gray[300]} />
-            </View>
-        }
-
-        {/* Status badge — top-left */}
-        {product.status !== "active" && (
-          <View style={[styles.statusBadge, product.status === "out_of_stock" ? styles.badgeOos : styles.badgeInactive]}>
-            <Text style={styles.badgeText}>
-              {product.status === "out_of_stock" ? "Sin stock" : "Inactiva"}
-            </Text>
-          </View>
-        )}
-
-        {/* Edit button — top-right */}
-        {onEdit && (
-          <TouchableOpacity
-            style={styles.editBtn}
-            onPress={onEdit}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          >
-            <Ionicons name="create-outline" size={15} color={colors.white} />
-          </TouchableOpacity>
-        )}
-      </View>
+    <TouchableOpacity style={styles.card} onPress={onPreview} activeOpacity={0.82}>
+      {firstImage ? (
+        <Image source={{ uri: firstImage }} style={styles.cardImage} resizeMode="cover" />
+      ) : (
+        <View style={[styles.cardImage, styles.imagePlaceholder]}>
+          <Text style={styles.imagePlaceholderText}>{initial}</Text>
+        </View>
+      )}
 
       <View style={styles.cardBody}>
         <Text style={styles.cardTitle} numberOfLines={2}>{product.title}</Text>
         <Text style={styles.cardPrice}>${product.price.toFixed(2)}</Text>
         <Text style={styles.cardCategory} numberOfLines={1}>{product.category}</Text>
       </View>
+
+      {onEdit && (
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={onEdit}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="create-outline" size={25} color={colors.gray[400]} />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    width: CARD_W,
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.white,
     borderRadius: radius.lg,
-    overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.gray[200],
+    overflow: "hidden",
+    paddingRight: spacing.sm,
   },
-  imageContainer: {
-    width: "100%",
-    aspectRatio: 1,
-    position: "relative",
+  cardImage: {
+    width: 80,
+    height: 80,
+    backgroundColor: colors.gray[100],
+    flexShrink: 0,
   },
-  cardImage: { width: "100%", height: "100%", backgroundColor: colors.gray[100] },
-  imagePlaceholder: { alignItems: "center", justifyContent: "center" },
-  cardBody: { padding: spacing.sm, gap: 2 },
+  imagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imagePlaceholderText: {
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[400],
+  },
+  cardBody: {
+    flex: 1,
+    gap: 3,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
   cardTitle: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
@@ -84,36 +87,41 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.bold,
     color: colors.brand[500],
   },
-  cardCategory: { fontSize: 12, color: colors.gray[400] },
-
-  // Status badge (top-left)
-  statusBadge: {
-    position: "absolute",
-    top: 6,
-    left: 6,
+  cardCategory: {
+    fontSize: 12,
+    color: colors.gray[400],
+  },
+  badgeRow: {
+    flexDirection: "row",
+    gap: 4,
+    marginTop: 2,
+  },
+  badge: {
+    borderRadius: radius.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
   },
-  badgeInactive: { backgroundColor: "rgba(55,65,81,0.75)" },
-  badgeOos:      { backgroundColor: "rgba(234,88,12,0.85)" },
+  badgeInactive: {
+    backgroundColor: colors.gray[100],
+  },
+  badgeOos: {
+    backgroundColor: "#FEF3C7",
+  },
   badgeText: {
-    fontSize: 10,
-    fontWeight: "700" as const,
-    color: "#ffffff",
-    letterSpacing: 0.2,
+    fontSize: 11,
+    fontWeight: typography.weight.semibold,
   },
-
-  // Edit button (top-right)
-  editBtn: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(0,0,0,0.42)",
+  badgeTextDark: {
+    color: colors.gray[700],
+  },
+  badgeTextOos: {
+    color: "#92400E",
+  },
+  editButton: {
+    width: 50,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
 });

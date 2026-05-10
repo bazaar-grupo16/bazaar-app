@@ -137,7 +137,7 @@ function WishlistItemCard({
         {removing ? (
           <ActivityIndicator size="small" color={colors.gray[400]} />
         ) : (
-          <Ionicons name="trash-outline" size={18} color={colors.gray[400]} />
+          <Ionicons name="trash-outline" size={25} color={colors.gray[400]} />
         )}
       </TouchableOpacity>
     </TouchableOpacity>
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
   },
   removeButton: {
-    width: 32,
+    width: 50,
     height: 32,
     alignItems: "center",
     justifyContent: "center",

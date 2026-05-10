@@ -291,6 +291,7 @@ export function EditProductPage() {
       }
 
       await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await queryClient.invalidateQueries({ queryKey: ["my-products"] });
       await queryClient.invalidateQueries({ queryKey: ["product", productId] });
 
       navigation.goBack();
@@ -320,8 +321,10 @@ export function EditProductPage() {
         onPress: async () => {
           setIsTogglingStatus(true);
           try {
-            await updateProduct(productId, { status: enabling ? "active" : "inactive" });
+            const newStatus = enabling ? (product.stock === 0 ? "out_of_stock" : "active") : "inactive";
+            await updateProduct(productId, { status: newStatus });
             await queryClient.invalidateQueries({ queryKey: ["products"] });
+            await queryClient.invalidateQueries({ queryKey: ["my-products"] });
             await queryClient.invalidateQueries({ queryKey: ["product", productId] });
             navigation.goBack();
           } catch (err) {
