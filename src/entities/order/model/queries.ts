@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getOrder, getOrdersHistory } from "../api/order";
 import { useSessionUserId } from "@/shared/auth";
+import type { OrderResponse } from "./types";
 
 export const orderKeys = {
   all: ["orders"] as const,
@@ -15,7 +16,7 @@ export function useOrder(
   refetchInterval?: number | false | ((query: any) => number | false)
 ) {
   const userId = useSessionUserId();
-  return useQuery({
+  return useQuery<OrderResponse, Error, OrderResponse>({
     queryKey: orderId ? orderKeys.detail(orderId) : [],
     queryFn: () => {
       if (!orderId) throw new Error("No order ID provided");

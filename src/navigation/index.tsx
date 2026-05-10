@@ -3,7 +3,7 @@ import { LoginPage } from "@/pages/login";
 import { ProductDetailPage } from "@/pages/product-detail";
 import { EditProductPage } from "@/pages/product-edit";
 import { CheckoutPage } from "@/pages/checkout";
-import { PaymentDebugPage } from "@/pages/payment-debug";
+import { PaymentPage } from "@/pages/payment";
 import { OrderPollingPage } from "@/pages/order-polling";
 import { OrderResultPage } from "@/pages/order-result";
 import { OrderDetailPage } from "@/pages/order-detail";
@@ -19,7 +19,7 @@ export type RootStackParamList = {
   ProductDetail: { productId: string };
   EditProduct: { productId: string };
   Checkout: undefined;
-  PaymentDebug: { orderId: string };
+  Payment: { orderId: string; initPoint: string };
   OrderPolling: { orderId: string };
   OrderResult: { orderId: string };
   OrderDetail: { orderId: string; fromCheckout?: boolean };
@@ -31,6 +31,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
     screens: {
       Tabs: "",
       ProductDetail: "products/:productId",
+      OrderPolling: "order-polling/:orderId",
+      OrderResult: "order-result/:orderId",
     },
   },
 };
@@ -58,7 +60,7 @@ export function RootNavigator() {
         <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
         <Stack.Screen name="EditProduct" component={EditProductPage} />
         <Stack.Screen name="Checkout" component={CheckoutPage} />
-        <Stack.Screen name="PaymentDebug" component={PaymentDebugPage} />
+        <Stack.Screen name="Payment" component={PaymentPage} />
         <Stack.Screen name="OrderPolling" component={OrderPollingPage} />
         <Stack.Screen name="OrderResult" component={OrderResultPage} />
         <Stack.Screen name="OrderDetail" component={OrderDetailPage} />

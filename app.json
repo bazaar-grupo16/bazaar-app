@@ -24,6 +24,16 @@
               "scheme": "https",
               "host": "bazaar.pib.ar",
               "pathPrefix": "/products"
+            },
+            {
+              "scheme": "https",
+              "host": "bazaar.pib.ar",
+              "pathPrefix": "/order-polling"
+            },
+            {
+              "scheme": "https",
+              "host": "bazaar.pib.ar",
+              "pathPrefix": "/order-result"
             }
           ],
           "category": [

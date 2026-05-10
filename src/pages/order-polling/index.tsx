@@ -17,6 +17,24 @@ export function OrderPollingPage() {
   const { orderId } = route.params;
   const clearIdempotencyKey = useCheckoutStore((s) => s.clearIdempotencyKey);
 
+  // Fallback: if orderId is missing (shouldn't happen with proper deep link), show error
+  if (!orderId) {
+    return (
+      <View style={[styles.fill, { paddingTop: insets.top + spacing.xl }]}>
+        <View style={styles.centered}>
+          <Text style={styles.title}>Orden no encontrada</Text>
+          <Text style={styles.description}>No se pudo identificar la orden. Por favor intenta nuevamente.</Text>
+          <Button
+            onPress={() => navigation.navigate("Tabs")}
+            style={styles.detailButton}
+          >
+            Volver al inicio
+          </Button>
+        </View>
+      </View>
+    );
+  }
+
   // Once we reach polling, the order has been committed via gateway,
   // so we can safely clear the idempotency key for the next intent.
   useEffect(() => {

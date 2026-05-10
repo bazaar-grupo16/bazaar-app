@@ -50,7 +50,28 @@ export function CheckoutPage() {
         onSuccess: (data) => {
           // Save address for future use (idempotency key is cleared later in OrderResultPage)
           setLastAddress(request.shipping_address);
-          navigation.replace("PaymentDebug", { orderId: data.order_id });
+
+          if (data.status === "CONFIRMADA" || data.status === "PAGO_RECHAZADO") {
+            clearIdempotencyKey();
+            navigation.replace("OrderResult", { orderId: data.order_id });
+            return;
+          }
+
+          if (data.status !== "PENDIENTE_DE_PAGO") {
+            clearIdempotencyKey();
+            navigation.replace("OrderDetail", { orderId: data.order_id });
+            return;
+          }
+
+          if (!data.init_point) {
+            Alert.alert(
+              "Error al iniciar el pago",
+              "La orden se creó correctamente, pero no se recibió el enlace de Mercado Pago."
+            );
+            return;
+          }
+
+          navigation.replace("Payment", { orderId: data.order_id, initPoint: data.init_point });
         },
         onError: (error) => {
           Alert.alert("Error al procesar la orden", error.message || "Ocurrió un error inesperado.");
