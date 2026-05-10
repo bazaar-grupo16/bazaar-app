@@ -1,5 +1,5 @@
-import { apiGet, apiPostForm, apiPatch, apiDeleteWithBody } from "@/shared/api";
-import type { ProductListParams, ProductListResponse, ProductResponse, UpdateProductBody } from "../model/types";
+import { apiGet, apiPostForm, apiPatch, apiDeleteWithBody, publicApiGet } from "@/shared/api";
+import type { MyProductsParams, ProductListParams, ProductListResponse, ProductResponse, UpdateProductBody } from "../model/types";
 
 function toQueryString(params: ProductListParams) {
   const searchParams = new URLSearchParams();
@@ -49,11 +49,11 @@ function toQueryString(params: ProductListParams) {
 }
 
 export function getProducts(params: ProductListParams = {}) {
-  return apiGet<ProductListResponse>(`/catalog/products${toQueryString(params)}`);
+  return publicApiGet<ProductListResponse>(`/catalog/products${toQueryString(params)}`);
 }
 
 export function getProduct(productId: string) {
-  return apiGet<ProductResponse>(`/catalog/products/${productId}`);
+  return publicApiGet<ProductResponse>(`/catalog/products/${productId}`);
 }
 
 export function createProduct(formData: FormData) {
@@ -65,7 +65,11 @@ export interface ShareLinkResponse {
 }
 
 export function getProductShareLink(productId: string) {
-  return apiGet<ShareLinkResponse>(`/catalog/products/${productId}/share-link`);
+  return publicApiGet<ShareLinkResponse>(`/catalog/products/${productId}/share-link`);
+}
+
+export function getMyProducts(params: MyProductsParams = {}) {
+  return apiGet<ProductListResponse>(`/catalog/my-products${toQueryString(params)}`);
 }
 
 export function updateProduct(productId: string, body: UpdateProductBody) {

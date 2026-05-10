@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getProduct, getProducts } from "../api/products";
-import type { ProductListParams } from "./types";
+import { getMyProducts, getProduct, getProducts } from "../api/products";
+import type { MyProductsParams, ProductListParams } from "./types";
 
 export function useProducts(params: ProductListParams = {}) {
   return useQuery({
@@ -13,5 +13,12 @@ export function useProduct(productId: string) {
   return useQuery({
     queryKey: ["product", productId],
     queryFn: () => getProduct(productId),
+  });
+}
+
+export function useMyProducts(params: MyProductsParams = {}) {
+  return useQuery({
+    queryKey: ["my-products", params],
+    queryFn: () => getMyProducts(params),
   });
 }
