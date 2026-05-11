@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: 25,
   },
   publishCircle: {
     width: 52,
