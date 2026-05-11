@@ -46,3 +46,8 @@ export type ProductListParams = {
   minPrice?: number;
   maxPrice?: number;
 };
+
+export type MyProductsParams = Pick<
+  ProductListParams,
+  "limit" | "offset" | "searchQuery" | "sortBy" | "order"
+>;

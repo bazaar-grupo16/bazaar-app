@@ -40,22 +40,11 @@ protectedApi.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
 
-  console.log("[API] Request:", {
-    method: config.method?.toUpperCase(),
-    url: config.url,
-    baseURL: config.baseURL,
-    hasAuth: !!accessToken,
-  });
-
   return config;
 });
 
 protectedApi.interceptors.response.use(
   (response) => {
-    console.log("[API] Response:", {
-      status: response.status,
-      url: response.config.url,
-    });
     return response;
   },
   async (error) => {
@@ -101,6 +90,25 @@ export async function apiGet<TResponse>(path: string): Promise<TResponse> {
     if (apiError) {
       if (process.env.NODE_ENV !== "production") {
         console.warn("API request failed", { path, status: apiError.status, details: apiError.details });
+      }
+
+      throw apiError;
+    }
+
+    throw error;
+  }
+}
+
+export async function publicApiGet<TResponse>(path: string): Promise<TResponse> {
+  try {
+    const { data } = await publicApi.get<TResponse>(path);
+    return data;
+  } catch (error) {
+    const apiError = toApiError(error);
+
+    if (apiError) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("API request failed (PUBLIC GET)", { path, status: apiError.status, details: apiError.details });
       }
 
       throw apiError;

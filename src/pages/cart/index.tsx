@@ -14,6 +14,7 @@ import { Button } from "@/shared/ui";
 import { colors, spacing, typography } from "@/shared/styles";
 import { CartItemCard } from "./components/CartItemCard";
 import { CartSummary } from "./components/CartSummary";
+import { useCheckoutStore } from "@/entities/order/model/store";
 
 export function CartPage() {
   const insets = useSafeAreaInsets();
@@ -22,6 +23,7 @@ export function CartPage() {
   const clearMutation = useClearCart();
   const incrementMutation = useIncrementCartItem();
   const decrementMutation = useDecrementCartItem();
+  const clearIdempotencyKey = useCheckoutStore((s) => s.clearIdempotencyKey);
 
   const cart = data?.data;
   const items = cart?.items ?? [];
@@ -94,6 +96,7 @@ export function CartPage() {
 
   // --- Empty cart ---
   if (items.length === 0) {
+    clearIdempotencyKey();
     return (
       <View style={styles.fill}>
         {header}
@@ -125,7 +128,10 @@ export function CartPage() {
         <CartSummary
           totalPrice={cart.totalPrice}
           itemCount={items.length}
-          onClear={() => clearMutation.mutate()}
+          onClear={() => {
+            clearMutation.mutate();
+            clearIdempotencyKey();
+          }}
           isClearing={clearMutation.isPending}
         />
       )}

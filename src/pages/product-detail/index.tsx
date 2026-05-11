@@ -215,7 +215,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Hero: image carousel with overlaid controls */}
         <View style={styles.hero}>
-          <ProductImageCarousel images={product.images ?? []} title={product.title} />
+          <ProductImageCarousel images={product.images ?? []} title={product.title} isOutOfStock={isOutOfStock} />
 
           <View style={[styles.topBarOverlay, { top: insets.top + spacing.sm }]}>
             <GlassButton icon="chevron-back" onPress={onBack} />
@@ -236,8 +236,8 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
             </View>
           </View>
 
-          {(isInactive || isOutOfStock) && (
-            <ProductBadge isDisabled={isInactive} isOutOfStock={isOutOfStock} />
+          {isInactive && (
+            <ProductBadge isDisabled={isInactive} isOutOfStock={false} />
           )}
         </View>
 
@@ -472,7 +472,7 @@ function SellerProfileModal({
   );
 }
 
-function ProductImageCarousel({ images, title }: { images: string[]; title: string }) {
+function ProductImageCarousel({ images, title, isOutOfStock = false }: { images: string[]; title: string; isOutOfStock?: boolean }) {
   const { width } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
   const [fullImageUri, setFullImageUri] = useState<string | null>(null);
@@ -532,6 +532,14 @@ function ProductImageCarousel({ images, title }: { images: string[]; title: stri
           {carouselImages.map((image, index) => (
             <View key={`dot-${index}`} style={[styles.dot, index === activeIndex && styles.activeDot]} />
           ))}
+        </View>
+      )}
+
+      {isOutOfStock && (
+        <View style={styles.oosOverlay} pointerEvents="none">
+          <View style={styles.oosBadge}>
+            <Text style={styles.oosBadgeText}>Sin stock</Text>
+          </View>
         </View>
       )}
     </View>
@@ -1018,5 +1026,25 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
     backgroundColor: colors.gray[200],
+  },
+
+  // ── Out-of-stock carousel overlay ──
+  oosOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  oosBadge: {
+    backgroundColor: colors.gray[500],
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  oosBadgeText: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+    letterSpacing: 0.5,
   },
 });
