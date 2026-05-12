@@ -32,8 +32,8 @@ export function ProfilePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { data, isLoading } = useMyProducts();
-  const { data: salesData } = useSalesHistory();
-  const { data: ordersData } = useOrdersHistory(1, 50);
+  const { data: salesCountData } = useSalesHistory(1, 1, "CONFIRMADA");
+  const { data: ordersData } = useOrdersHistory(1, 1, "CONFIRMADA");
   const allListings = data?.data ?? [];
 
   const activeListings    = allListings.filter((p) => p.status === "active");
@@ -51,7 +51,7 @@ export function ProfilePage() {
     sinStock:  outOfStockListings.length,
   };
 
-  const salesCount = salesData?.total ?? 0;
+  const salesCount = salesCountData?.total ?? 0;
   const purchasesCount = ordersData?.total ?? 0;
 
   const handleSignOut = async () => {

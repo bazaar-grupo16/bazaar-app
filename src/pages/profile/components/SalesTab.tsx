@@ -1,11 +1,25 @@
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSalesHistory } from "@/entities/order";
-import type { OrderResponse } from "@/entities/order";
+import type { OrderResponse, OrderStatus } from "@/entities/order";
 import { colors, spacing, typography, radius } from "@/shared/styles";
 
+type FilterOption = { label: string; value: OrderStatus | null };
+
+const FILTERS: FilterOption[] = [
+  { label: "Todas", value: null },
+  { label: "Confirmada", value: "CONFIRMADA" },
+  { label: "En preparación", value: "EN_PREPARACION" },
+  { label: "Enviada", value: "ENVIADA" },
+  { label: "Entregada", value: "ENTREGADA" },
+  { label: "Cancelada", value: "CANCELADA" },
+];
+
 export function SalesTab() {
-  const { data, isLoading, isError, refetch, isRefetching } = useSalesHistory();
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
+
+  const { data, isLoading, isError, refetch, isRefetching } = useSalesHistory(1, 50, selectedStatus ?? undefined);
 
   if (isLoading) {
     return (
@@ -34,24 +48,54 @@ export function SalesTab() {
 
   const sales = data?.orders ?? [];
 
-  if (sales.length === 0) {
-    return (
-      <View style={styles.centered}>
-        <Ionicons name="storefront-outline" size={40} color={colors.gray[300]} />
-        <Text style={styles.emptyTitle}>Todavía no tenés ventas</Text>
-        <Text style={styles.helperText}>Cuando alguien compre tus productos, aparecerán acá</Text>
-      </View>
-    );
-  }
-
   return (
-    <FlatList
-      data={sales}
-      keyExtractor={(item) => item.order_id}
-      contentContainerStyle={styles.list}
-      scrollEnabled={false}
-      renderItem={({ item }) => <SaleCard sale={item} />}
-    />
+    <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filters}
+      >
+        {FILTERS.map((f) => {
+          const active = selectedStatus === f.value;
+          return (
+            <TouchableOpacity
+              key={f.label}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setSelectedStatus(f.value)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {sales.length === 0 ? (
+        <View style={styles.centered}>
+          <Ionicons name="storefront-outline" size={40} color={colors.gray[300]} />
+          <Text style={styles.emptyTitle}>
+            {selectedStatus ? "Sin ventas en este estado" : "Todavía no tenés ventas"}
+          </Text>
+          <Text style={styles.helperText}>
+            {selectedStatus
+              ? "Probá con otro filtro"
+              : "Cuando alguien compre tus productos, aparecerán acá"}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={sales}
+          keyExtractor={(item) => item.order_id}
+          contentContainerStyle={styles.list}
+          scrollEnabled={false}
+          renderItem={({ item }) => (
+            <SaleCard sale={item} />
+          )}
+        />
+      )}
+    </View>
   );
 }
 
@@ -117,9 +161,34 @@ const styles = StyleSheet.create({
     color: colors.brand[500],
     fontWeight: typography.weight.semibold,
   },
+  filters: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: 99,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    backgroundColor: colors.white,
+  },
+  chipActive: {
+    backgroundColor: colors.brand[500],
+    borderColor: colors.brand[500],
+  },
+  chipText: {
+    fontSize: typography.size.sm,
+    color: colors.gray[600],
+    fontWeight: typography.weight.semibold,
+  },
+  chipTextActive: {
+    color: colors.white,
+  },
   list: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
+    paddingTop: spacing.xs,
     gap: spacing.sm,
   },
   card: {
@@ -129,7 +198,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gray[200],
     gap: spacing.xs,
-    shadowColor: colors.black,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -157,6 +226,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 2,
+  },
+  footerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   orderStatus: {
     fontSize: typography.size.sm,
