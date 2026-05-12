@@ -6,7 +6,7 @@ interface Props {
   onTabChange: (tab: Tab) => void;
 }
 
-const TABS: Tab[] = ["publicaciones", "favoritos"];
+const TABS: Tab[] = ["publicaciones", "favoritos", "ventas"];
 
 export function ProfileTabs({ activeTab, onTabChange }: Props) {
   return (

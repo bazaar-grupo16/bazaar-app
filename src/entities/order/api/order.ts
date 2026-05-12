@@ -74,3 +74,28 @@ export function getOrdersHistory(page: number = 1, size: number = 20, status?: s
     "GET /orders",
   );
 }
+
+export function getSaleDetail(orderId: string) {
+  return wrapRequest<OrderResponse>(
+    protectedApi.get(`/orders/sales/${orderId}`),
+    `GET /orders/sales/${orderId}`,
+  );
+}
+
+export function updateOrderStatus(orderId: string, status: string) {
+  return wrapRequest<OrderResponse>(
+    protectedApi.patch(`/orders/${orderId}/status`, { status }),
+    `PATCH /orders/${orderId}/status`,
+  );
+}
+
+export function getSalesHistory(page: number = 1, size: number = 50, status?: string) {
+  const params = new URLSearchParams({ page: page.toString(), size: size.toString() });
+  if (status) {
+    params.append("order_status", status);
+  }
+  return wrapRequest<OrderListResponse>(
+    protectedApi.get(`/orders/sales?${params.toString()}`),
+    "GET /orders/sales",
+  );
+}

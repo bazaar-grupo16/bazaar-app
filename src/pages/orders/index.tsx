@@ -1,17 +1,33 @@
-import { useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
+import { useCallback, useState } from "react";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { useOrdersHistory, type OrderResponse } from "@/entities/order";
+import { useOrdersHistory, type OrderResponse, type OrderStatus } from "@/entities/order";
 import { colors, spacing, typography, radius } from "@/shared/styles";
+
+type FilterOption = { label: string; value: OrderStatus | null };
+
+const FILTERS: FilterOption[] = [
+  { label: "Todas", value: null },
+  { label: "Pendiente de pago", value: "PENDIENTE_DE_PAGO" },
+  { label: "Confirmada", value: "CONFIRMADA" },
+  { label: "En preparación", value: "EN_PREPARACION" },
+  { label: "Enviada", value: "ENVIADA" },
+  { label: "Entregada", value: "ENTREGADA" },
+  { label: "Cancelada", value: "CANCELADA" },
+  { label: "Pago rechazado", value: "PAGO_RECHAZADO" },
+  { label: "Reembolso en proceso", value: "REEMBOLSO_EN_PROCESO" },
+  { label: "Reembolso procesado", value: "REEMBOLSO_PROCESADO" },
+];
 
 export function OrdersPage() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { data, isLoading, isRefetching, refetch } = useOrdersHistory(1, 50);
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
+  const { data, isLoading, isRefetching, refetch } = useOrdersHistory(1, 50, selectedStatus ?? undefined);
 
   const orders = data?.orders ?? [];
 
@@ -48,6 +64,29 @@ export function OrdersPage() {
         <Text style={styles.pageTitle}>Mis Órdenes</Text>
       </View>
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersRow}
+        contentContainerStyle={styles.filters}
+      >
+        {FILTERS.map((f) => {
+          const active = selectedStatus === f.value;
+          return (
+            <TouchableOpacity
+              key={f.label}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setSelectedStatus(f.value)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.brand[500]} />
@@ -55,9 +94,13 @@ export function OrdersPage() {
       ) : orders.length === 0 ? (
         <View style={styles.centered}>
           <Ionicons name="cube-outline" size={64} color={colors.gray[300]} />
-          <Text style={styles.emptyTitle}>Todavía no tenés pedidos</Text>
+          <Text style={styles.emptyTitle}>
+            {selectedStatus ? "Sin pedidos en este estado" : "Todavía no tenés pedidos"}
+          </Text>
           <Text style={styles.emptyText}>
-            Cuando realices una compra, tus pedidos van a aparecer acá.
+            {selectedStatus
+              ? "Probá con otro filtro"
+              : "Cuando realices una compra, tus pedidos van a aparecer acá."}
           </Text>
         </View>
       ) : (
@@ -110,6 +153,34 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     textAlign: "center",
     lineHeight: 22,
+  },
+  filtersRow: {
+    flexGrow: 0,
+  },
+  filters: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: 99,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    backgroundColor: colors.white,
+  },
+  chipActive: {
+    backgroundColor: colors.brand[500],
+    borderColor: colors.brand[500],
+  },
+  chipText: {
+    fontSize: typography.size.sm,
+    color: colors.gray[600],
+    fontWeight: typography.weight.semibold,
+  },
+  chipTextActive: {
+    color: colors.white,
   },
   listContent: {
     padding: spacing.md,
