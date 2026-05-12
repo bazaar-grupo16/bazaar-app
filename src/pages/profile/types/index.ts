@@ -1,4 +1,4 @@
-export type Tab = "publicaciones" | "favoritos";
+export type Tab = "publicaciones" | "favoritos" | "ventas";
 export type PublicationsSubTab = "activas" | "inactivas" | "sin-stock";
 
 export interface Stat {

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getOrder, getOrdersHistory } from "../api/order";
+import { getOrder, getOrdersHistory, getSalesHistory } from "../api/order";
 import { useSessionUserId } from "@/shared/auth";
 import type { OrderResponse } from "./types";
 
@@ -9,6 +9,7 @@ export const orderKeys = {
   list: (filters: string) => [...orderKeys.lists(), { filters }] as const,
   details: () => [...orderKeys.all, "detail"] as const,
   detail: (id: string) => [...orderKeys.details(), id] as const,
+  sales: () => [...orderKeys.all, "sales"] as const,
 };
 
 export function useOrder(
@@ -33,6 +34,15 @@ export function useOrdersHistory(page: number = 1, size: number = 20, status?: s
   return useQuery({
     queryKey: orderKeys.list(filters),
     queryFn: () => getOrdersHistory(page, size, status),
+    enabled: !!userId,
+  });
+}
+
+export function useSalesHistory(page: number = 1, size: number = 50) {
+  const userId = useSessionUserId();
+  return useQuery({
+    queryKey: orderKeys.sales(),
+    queryFn: () => getSalesHistory(page, size),
     enabled: !!userId,
   });
 }

@@ -74,3 +74,11 @@ export function getOrdersHistory(page: number = 1, size: number = 20, status?: s
     "GET /orders",
   );
 }
+
+export function getSalesHistory(page: number = 1, size: number = 50) {
+  const params = new URLSearchParams({ page: page.toString(), size: size.toString() });
+  return wrapRequest<OrderListResponse>(
+    protectedApi.get(`/orders/sales?${params.toString()}`),
+    "GET /orders/sales",
+  );
+}
