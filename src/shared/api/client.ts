@@ -1,7 +1,7 @@
-import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
 
 import { refreshAuthSession, useAuthStore } from "@/shared/auth";
-import { protectedApi, publicApi } from "./http";
+import { getApiBaseUrl, protectedApi, publicApi } from "./http";
 
 export class ApiError extends Error {
   constructor(
@@ -53,6 +53,7 @@ protectedApi.interceptors.response.use(
       status: error.response?.status,
       url: error.config?.url,
       message: error.message,
+      detail: error.response?.data?.detail,
     });
 
     if (!axios.isAxiosError(error) || !error.config || error.response?.status !== 401) {
@@ -235,26 +236,55 @@ export async function apiDeleteWithBody<TResponse, TBody = unknown>(
   }
 }
 
+// Axios + FormData + file:// URIs falla en Android (Network Error sin status).
+// Esta función usa fetch nativo, que sí sabe streamear archivos locales,
+// y reimplementa el refresh de token para no perder la protección del interceptor.
 export async function apiPostForm<TResponse>(path: string, formData: FormData): Promise<TResponse> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}${path}`;
+
+  async function doFetch(token: string | null): Promise<Response> {
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    console.log(`[API] --> POST ${path} (fetch)`, { hasToken: !!token });
+    return fetch(url, { method: "POST", headers, body: formData });
+  }
+
+  async function parseResponse<T>(response: Response): Promise<T> {
+    if (response.ok) {
+      return response.json() as Promise<T>;
+    }
+    let responseData: unknown;
+    try { responseData = await response.json(); } catch { responseData = null; }
+    const message =
+      typeof responseData === "object" && responseData !== null && "detail" in responseData
+        ? String((responseData as { detail?: unknown }).detail ?? response.statusText)
+        : response.statusText || "API request failed";
+    throw new ApiError(message, response.status, responseData);
+  }
+
   try {
-    const { data } = await protectedApi.post<TResponse>(path, formData);
+    let token = useAuthStore.getState().accessToken;
+    let response = await doFetch(token);
 
-    return data;
-  } catch (error) {
-    const apiError = toApiError(error);
-
-    if (apiError) {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("API request failed (POST form)", {
-          path,
-          status: apiError.status,
-          details: apiError.details,
-        });
+    if (response.status === 401) {
+      console.log(`[API] 401 on POST ${path} (fetch) — attempting token refresh...`);
+      const refreshed = await refreshAuthSession();
+      if (!refreshed) {
+        console.error(`[API] Token refresh returned null — giving up on POST ${path}`);
+        throw new ApiError("Unauthorized", 401);
       }
-
-      throw apiError;
+      console.log(`[API] Token refreshed OK — retrying POST ${path}`);
+      token = refreshed.access_token;
+      response = await doFetch(token);
     }
 
+    console.log(`[API] <-- ${response.status} POST ${path} (fetch)`);
+    return parseResponse<TResponse>(response);
+  } catch (error: unknown) {
+    console.log("[API] Full error:", JSON.stringify(error, null, 2));
+    console.log("[API] Error response:", (error as any)?.response?.data);
+    console.log("[API] Error request:", (error as any)?.request?._response);
     throw error;
   }
 }
