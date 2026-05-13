@@ -23,6 +23,13 @@ export type OrderItemResponse = {
   product_name: string;
   quantity: number;
   unit_price: number;
+  status?: string;
+};
+
+export type TransactionEntry = {
+  status: OrderStatus;
+  changed_at: string;
+  changed_by?: string;
 };
 
 export type OrderResponse = {
@@ -37,6 +44,7 @@ export type OrderResponse = {
   created_at: string;
   updated_at: string;
   items: OrderItemResponse[];
+  transactions?: TransactionEntry[];
 };
 
 export type OrderListResponse = {

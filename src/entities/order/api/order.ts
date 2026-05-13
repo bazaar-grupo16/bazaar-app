@@ -2,7 +2,7 @@ import axios from "axios";
 
 import { ApiError } from "@/shared/api";
 import { protectedApi } from "@/shared/api/http";
-import type { CreateOrderRequest, OrderCreatedResponse, OrderListResponse, OrderResponse } from "../model/types";
+import type { CreateOrderRequest, OrderCreatedResponse, OrderItemResponse, OrderListResponse, OrderResponse } from "../model/types";
 
 function toApiError(error: unknown) {
   if (axios.isAxiosError(error) && error.response) {
@@ -97,5 +97,33 @@ export function getSalesHistory(page: number = 1, size: number = 50, status?: st
   return wrapRequest<OrderListResponse>(
     protectedApi.get(`/orders/sales?${params.toString()}`),
     "GET /orders/sales",
+  );
+}
+
+export function cancelOrder(orderId: string) {
+  return wrapRequest<OrderResponse>(
+    protectedApi.put(`/orders/${orderId}/cancel`, {}),
+    `PUT /orders/${orderId}/cancel`,
+  );
+}
+
+export function getSaleItems(orderId: string) {
+  return wrapRequest<{ items: OrderItemResponse[] }>(
+    protectedApi.get(`/orders/sales/${orderId}/`),
+    `GET /orders/sales/${orderId}/`,
+  );
+}
+
+export function updateSaleItemStatus(orderId: string, itemId: string, status: string) {
+  return wrapRequest<OrderItemResponse>(
+    protectedApi.patch(`/orders/sales/${orderId}/${itemId}/status`, { status }),
+    `PATCH /orders/sales/${orderId}/${itemId}/status`,
+  );
+}
+
+export function cancelSaleItem(orderId: string, itemId: string) {
+  return wrapRequest<OrderItemResponse>(
+    protectedApi.put(`/orders/sales/${orderId}/${itemId}/cancel`, {}),
+    `PUT /orders/sales/${orderId}/${itemId}/cancel`,
   );
 }
