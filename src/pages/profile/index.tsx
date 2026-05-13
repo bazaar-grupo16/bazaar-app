@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { ScrollView, View, StyleSheet, ActivityIndicator, Text } from "react-native";
+import { ScrollView, View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { clearAuthSession } from "@/shared/auth";
+import { clearAuthSession, useAuthStore } from "@/shared/auth";
 import { useMyProducts } from "@/entities/product";
 import { useOrdersHistory, useSalesHistory } from "@/entities/order";
 import { colors, typography, spacing } from "@/shared/styles";
@@ -32,6 +32,7 @@ const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: stri
 
 export function ProfilePage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Tabs">>();
+  const isGuest = !useAuthStore((state) => state.accessToken);
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -41,6 +42,11 @@ export function ProfilePage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   useEffect(() => {
+    if (isGuest) {
+      setIsLoadingProfile(false);
+      return;
+    }
+
     async function loadProfile() {
       try {
         const profileData = await getMyProfile();
@@ -52,7 +58,7 @@ export function ProfilePage() {
       }
     }
     loadProfile();
-  }, []);
+  }, [isGuest]);
 
   const { data, isLoading } = useMyProducts();
   const { data: salesCountData } = useSalesHistory(1, 1, "CONFIRMADA");
@@ -76,6 +82,25 @@ export function ProfilePage() {
 
   const salesCount = salesCountData?.total ?? 0;
   const purchasesCount = ordersData?.total ?? 0;
+
+  if (isGuest) {
+    return (
+      <View style={styles.guestContainer}>
+        <Ionicons name="person-circle-outline" size={100} color={colors.gray[300]} />
+        <Text style={styles.guestTitle}>Ingresá a tu cuenta</Text>
+        <Text style={styles.guestSubtitle}>
+          Para ver tu perfil, gestionar tus publicaciones y revisar tus ventas, tenés que iniciar sesión.
+        </Text>
+        <TouchableOpacity 
+          style={styles.loginButton} 
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate("Login" as any)} 
+        >
+          <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const handleSignOut = async () => {
     await clearAuthSession();
@@ -186,5 +211,39 @@ const styles = StyleSheet.create({
   gridArea: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+  },
+  guestContainer: {
+    flex: 1,
+    backgroundColor: colors.gray[50],
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: spacing.xl,
+  },
+  guestTitle: {
+    fontSize: typography.size.xl,
+    fontWeight: "bold",
+    color: colors.gray[900],
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  guestSubtitle: {
+    fontSize: typography.size.md,
+    color: colors.gray[500],
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+  },
+  loginButton: {
+    backgroundColor: colors.brand[500],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 8,
+    width: "100%",
+    alignItems: "center",
+  },
+  loginButtonText: {
+    color: colors.white,
+    fontSize: typography.size.md,
+    fontWeight: "bold",
   },
 });
