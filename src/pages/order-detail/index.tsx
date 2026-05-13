@@ -1,11 +1,24 @@
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { useOrder } from "@/entities/order";
+import { useOrder, useSaleDetail, useUpdateOrderStatus } from "@/entities/order";
+import type { OrderStatus } from "@/entities/order";
 import { Button } from "@/shared/ui";
 import { colors, spacing, typography, radius } from "@/shared/styles";
+
+const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
+  CONFIRMADA: "EN_PREPARACION",
+  EN_PREPARACION: "ENVIADA",
+  ENVIADA: "ENTREGADA",
+};
+
+const NEXT_STATUS_LABEL: Partial<Record<OrderStatus, string>> = {
+  CONFIRMADA: "Marcar en preparación",
+  EN_PREPARACION: "Marcar como enviada",
+  ENVIADA: "Marcar como entregada",
+};
 
 type OrderDetailRouteProp = RouteProp<RootStackParamList, "OrderDetail">;
 
@@ -13,7 +26,7 @@ export function OrderDetailPage() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<OrderDetailRouteProp>();
-  const { orderId, fromCheckout } = route.params;
+  const { orderId, fromCheckout, fromSales } = route.params;
 
   const handleBack = () => {
     if (fromCheckout) {
@@ -23,7 +36,27 @@ export function OrderDetailPage() {
     }
   };
 
-  const { data: order, isLoading } = useOrder(orderId, false);
+  const buyerQuery = useOrder(fromSales ? undefined : orderId, false);
+  const sellerQuery = useSaleDetail(fromSales ? orderId : undefined);
+  const { data: order, isLoading } = fromSales ? sellerQuery : buyerQuery;
+  const { mutate: advanceStatus, isPending: isAdvancing } = useUpdateOrderStatus(orderId);
+
+  const pageTitle = fromSales ? "Detalle de Venta" : "Detalle de Orden";
+
+  const handleAdvanceStatus = () => {
+    if (!order) return;
+    const next = NEXT_STATUS[order.status];
+    const label = NEXT_STATUS_LABEL[order.status];
+    if (!next || !label) return;
+    Alert.alert(
+      "Confirmar cambio de estado",
+      `¿Querés avanzar la orden a "${next.replace(/_/g, " ")}"?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Confirmar", onPress: () => advanceStatus(next) },
+      ],
+    );
+  };
 
   if (isLoading) {
     return (
@@ -32,7 +65,7 @@ export function OrderDetailPage() {
           <Button variant="ghost" onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.gray[900]} />
           </Button>
-          <Text style={styles.pageTitle}>Detalle de Orden</Text>
+          <Text style={styles.pageTitle}>{pageTitle}</Text>
         </View>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.brand[500]} />
@@ -48,7 +81,7 @@ export function OrderDetailPage() {
           <Button variant="ghost" onPress={handleBack} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.gray[900]} />
           </Button>
-          <Text style={styles.pageTitle}>Detalle de Orden</Text>
+          <Text style={styles.pageTitle}>{pageTitle}</Text>
         </View>
         <View style={styles.centered}>
           <Text style={styles.errorText}>No se pudo cargar la orden.</Text>
@@ -71,7 +104,7 @@ export function OrderDetailPage() {
         <Button variant="ghost" onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.gray[900]} />
         </Button>
-        <Text style={styles.pageTitle}>Detalle de Orden</Text>
+        <Text style={styles.pageTitle}>{pageTitle}</Text>
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}>
@@ -82,6 +115,16 @@ export function OrderDetailPage() {
             <Text style={styles.statusText}>{order.status.replace(/_/g, " ")}</Text>
           </View>
         </View>
+
+        {fromSales && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Comprador</Text>
+            <View style={styles.buyerRow}>
+              <Ionicons name="person-circle-outline" size={28} color={colors.gray[400]} />
+              <Text style={styles.buyerText}>{order.user_id}</Text>
+            </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dirección de Envío</Text>
@@ -108,6 +151,24 @@ export function OrderDetailPage() {
             <Text style={styles.totalValue}>${order.total_amount.toFixed(2)}</Text>
           </View>
         </View>
+
+        {fromSales && NEXT_STATUS[order.status] && (
+          <TouchableOpacity
+            style={[styles.advanceButton, isAdvancing && styles.advanceButtonDisabled]}
+            onPress={handleAdvanceStatus}
+            disabled={isAdvancing}
+            activeOpacity={0.8}
+          >
+            {isAdvancing ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <Ionicons name="arrow-forward-circle-outline" size={20} color={colors.white} />
+                <Text style={styles.advanceButtonText}>{NEXT_STATUS_LABEL[order.status]}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -232,5 +293,32 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xl,
     fontWeight: typography.weight.bold,
     color: colors.brand[600],
+  },
+  buyerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  buyerText: {
+    fontSize: typography.size.sm,
+    color: colors.gray[600],
+    flex: 1,
+  },
+  advanceButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.brand[500],
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+  },
+  advanceButtonDisabled: {
+    opacity: 0.6,
+  },
+  advanceButtonText: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
   },
 });

@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
 import { clearAuthSession } from "@/shared/auth";
 import { useMyProducts } from "@/entities/product";
+import { useOrdersHistory, useSalesHistory } from "@/entities/order";
 import { colors, typography, spacing } from "@/shared/styles";
 import type { Tab, PublicationsSubTab } from "./types";
 
@@ -21,6 +22,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { WishlistTab } from "./components/WishlistTab";
 import { EditProfileModal } from "./components/EditProfileModal";
 
+import { SalesTab } from "./components/SalesTab";
 
 const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: string }> = {
   activas:    { title: "Sin publicaciones activas",    subtitle: "Publicá algo y empezá a vender" },
@@ -53,6 +55,8 @@ export function ProfilePage() {
   }, []);
 
   const { data, isLoading } = useMyProducts();
+  const { data: salesCountData } = useSalesHistory(1, 1, "CONFIRMADA");
+  const { data: ordersData } = useOrdersHistory(1, 1, "CONFIRMADA");
   const allListings = data?.data ?? [];
 
   const activeListings    = allListings.filter((p) => p.status === "active");
@@ -69,6 +73,9 @@ export function ProfilePage() {
     inactivas: inactiveListings.length,
     sinStock:  outOfStockListings.length,
   };
+
+  const salesCount = salesCountData?.total ?? 0;
+  const purchasesCount = ordersData?.total ?? 0;
 
   const handleSignOut = async () => {
     await clearAuthSession();
@@ -94,6 +101,8 @@ export function ProfilePage() {
         avatarUrl={userProfile?.profile_picture_url ?? null}
         publicationsCount={activeListings.length}
         onEditPress={() => setEditModalOpen(true)}
+        salesCount={salesCount}
+        purchasesCount={purchasesCount}
         onSettingsPress={() => setSettingsOpen(true)}
       />
 
@@ -129,6 +138,8 @@ export function ProfilePage() {
               )}
             </View>
           </>
+        ) : tab === "ventas" ? (
+          <SalesTab />
         ) : (
           <EmptyState
             icon={<Ionicons name="heart-outline" size={40} color={colors.gray[300]} />}

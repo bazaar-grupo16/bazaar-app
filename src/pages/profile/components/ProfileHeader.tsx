@@ -9,24 +9,19 @@ interface Props {
   bio?: string | null;
   avatarUrl?: string | null;
   publicationsCount: number;
+  salesCount: number;
+  purchasesCount: number;
   onEditPress?: (() => void) | undefined;
   onSettingsPress?: (() => void) | undefined;
 }
 
-export function ProfileHeader({ 
-  name, 
-  bio, 
-  avatarUrl, 
-  publicationsCount, 
-  onEditPress, 
-  onSettingsPress 
-}: Props) {
+export function ProfileHeader({ publicationsCount, salesCount, purchasesCount, onEditPress, onSettingsPress }: Props) {
   const insets = useSafeAreaInsets();
 
   const stats: Stat[] = [
     { label: "Publicaciones", value: String(publicationsCount), color: colors.brand[500] },
-    { label: "Ventas",        value: "Y",                      color: "#22c55e" },
-    { label: "Compras",       value: "Z",                       color: "#3b82f6" },
+    { label: "Ventas",        value: String(salesCount),        color: "#22c55e" },
+    { label: "Compras",       value: String(purchasesCount),    color: "#3b82f6" },
   ];
 
   const displayName = name ?? "Usuario";
