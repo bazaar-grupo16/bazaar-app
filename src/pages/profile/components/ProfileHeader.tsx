@@ -15,7 +15,7 @@ interface Props {
   onSettingsPress?: (() => void) | undefined;
 }
 
-export function ProfileHeader({ publicationsCount, salesCount, purchasesCount, onEditPress, onSettingsPress }: Props) {
+export function ProfileHeader({ name, bio, avatarUrl, publicationsCount, salesCount, purchasesCount, onEditPress, onSettingsPress }: Props) {
   const insets = useSafeAreaInsets();
 
   const stats: Stat[] = [
