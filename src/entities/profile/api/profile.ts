@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPostForm } from "@/shared/api/client";
-import type { Profile } from "../model/types";
+import type { Profile, PublicProfile } from "../model/types";
 import { useAuthStore } from "@/shared/auth";
 
 export async function getMyProfile(): Promise<Profile> {
@@ -37,4 +37,8 @@ export async function uploadAvatar(formData: FormData) {
     console.error("Fallo Fetch:", error);
     throw error;
   }
+}
+
+export async function getPublicProfile(userId: string): Promise<PublicProfile> {
+  return apiGet<PublicProfile>(`/profile/${userId}`);
 }

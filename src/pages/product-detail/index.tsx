@@ -154,6 +154,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
 
   const addToCart = useAddToCart();
   const MOCK_SELLER_ID = "222e52aa-d03b-46c6-845e-83605cdfa319";
+  //sacar mock por product.sellerId
   const { data: sellerProfile } = useQuery({
     queryKey: ["seller-profile", MOCK_SELLER_ID],
     queryFn: () => getPublicProfile(MOCK_SELLER_ID),
@@ -430,6 +431,7 @@ function SellerProfileModal({
   onClose: () => void;
 }) {
   const MOCK_SELLER_ID = "222e52aa-d03b-46c6-845e-83605cdfa319";
+  //sacar mock por product.sellerId
   const { data, isLoading } = useQuery({
     queryKey: ["seller-profile", MOCK_SELLER_ID],
     queryFn: () => getPublicProfile(MOCK_SELLER_ID),
