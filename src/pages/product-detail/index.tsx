@@ -27,6 +27,7 @@ import { useProduct, getProductShareLink } from "@/entities/product";
 import type { Product } from "@/entities/product";
 import { useAddToCart, useCart } from "@/entities/cart";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
+import { getPublicProfile } from "@/entities/profile/api/profile";
 import { ApiError, apiGet } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
@@ -152,6 +153,14 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   }, [maxToAdd, quantity]);
 
   const addToCart = useAddToCart();
+  const MOCK_SELLER_ID = "222e52aa-d03b-46c6-845e-83605cdfa319";
+  const { data: sellerProfile } = useQuery({
+    queryKey: ["seller-profile", MOCK_SELLER_ID],
+    queryFn: () => getPublicProfile(MOCK_SELLER_ID),
+  });
+
+  const sellerName = sellerProfile?.name ?? "Vendedor";
+  const sellerInitial = sellerName.charAt(0).toUpperCase();
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -290,13 +299,23 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
             onPress={() => setSellerModalVisible(true)}
           >
             <View style={styles.sellerAvatar}>
-              <Text style={styles.sellerAvatarText}>
-                {product.sellerId.charAt(0).toUpperCase()}
-              </Text>
+              {/* Si tiene foto la mostramos, sino mostramos la inicial */}
+              {sellerProfile?.profile_picture_url ? (
+                <Image 
+                  source={{ uri: sellerProfile.profile_picture_url }} 
+                  style={styles.sellerRowAvatarImage} 
+                />
+              ) : (
+                <Text style={styles.sellerAvatarText}>
+                  {sellerInitial}
+                </Text>
+              )}
             </View>
             <View style={styles.sellerInfo}>
-              <Text style={styles.sellerName}>Vendedor</Text>
-              <Text style={styles.sellerId}>ID: {product.sellerId}</Text>
+              <Text style={styles.sellerLabel}>Vendedor</Text>
+              <Text style={styles.sellerName} numberOfLines={1}>
+                {sellerName}
+              </Text>
             </View>
             <View style={styles.sellerChevron}>
               <Text style={styles.sellerProfileText}>Ver perfil</Text>
@@ -410,9 +429,10 @@ function SellerProfileModal({
   visible: boolean;
   onClose: () => void;
 }) {
+  const MOCK_SELLER_ID = "222e52aa-d03b-46c6-845e-83605cdfa319";
   const { data, isLoading } = useQuery({
-    queryKey: ["seller-profile", sellerId],
-    queryFn: () => apiGet<SellerProfile>(`/users/${sellerId}`),
+    queryKey: ["seller-profile", MOCK_SELLER_ID],
+    queryFn: () => getPublicProfile(MOCK_SELLER_ID),
     enabled: visible,
     retry: false,
   });
@@ -441,28 +461,33 @@ function SellerProfileModal({
           ) : (
             <>
               <View style={styles.modalAvatarContainer}>
-                <View style={styles.modalAvatar}>
-                  <Text style={styles.modalAvatarText}>{initial}</Text>
-                </View>
+                {/* Si tiene foto, la mostramos. Si no, mostramos la inicial */}
+                {data?.profile_picture_url ? (
+                  <Image 
+                    source={{ uri: data.profile_picture_url }} 
+                    style={styles.modalAvatarImage} 
+                  />
+                ) : (
+                  <View style={styles.modalAvatar}>
+                    <Text style={styles.modalAvatarText}>{initial}</Text>
+                  </View>
+                )}
+                
                 <Text style={styles.modalSellerName}>{displayName}</Text>
-                <Text style={styles.modalSellerId}>ID: {sellerId}</Text>
               </View>
 
+              {/* Agregamos la descripción si el vendedor escribió una */}
+              {data?.description && (
+                 <Text style={styles.modalSellerDescription}>{data.description}</Text>
+              )}
+
               <View style={styles.modalStats}>
+                {/* Dejamos preparado el de ventas como pediste */}
                 <View style={styles.modalStat}>
                   <Text style={styles.modalStatValue}>—</Text>
                   <Text style={styles.modalStatLabel}>Ventas</Text>
                 </View>
-                <View style={styles.modalStatDivider} />
-                <View style={styles.modalStat}>
-                  <Text style={styles.modalStatValue}>—</Text>
-                  <Text style={styles.modalStatLabel}>Calificación</Text>
-                </View>
-                <View style={styles.modalStatDivider} />
-                <View style={styles.modalStat}>
-                  <Text style={styles.modalStatValue}>—</Text>
-                  <Text style={styles.modalStatLabel}>Miembro desde</Text>
-                </View>
+                {/* Eliminamos calificación y miembro desde */}
               </View>
             </>
           )}
@@ -1045,6 +1070,32 @@ const styles = StyleSheet.create({
     fontSize: typography.size.md,
     fontWeight: typography.weight.bold,
     color: colors.white,
+    letterSpacing: 0.5,
+  },
+  modalAvatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.gray[100],
+  },
+  modalSellerDescription: {
+    fontSize: typography.size.sm,
+    color: colors.gray[700],
+    textAlign: "center",
+    lineHeight: 20,
+    marginTop: -spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  sellerRowAvatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.gray[100],
+  },
+  sellerLabel: {
+    fontSize: 12,
+    color: colors.gray[500],
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
 });
