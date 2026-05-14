@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { cancelOrder, cancelSaleItem, createOrder, updateOrderStatus, updateSaleItemStatus } from "../api/order";
+import { cancelOrder, cancelSaleItem, confirmItemDelivery, createOrder, updateOrderStatus, updateSaleItemStatus } from "../api/order";
 import type { CreateOrderRequest } from "./types";
 import { orderKeys } from "./queries";
 
@@ -60,7 +60,18 @@ export function useUpdateSaleItemStatus(orderId: string) {
       updateSaleItemStatus(orderId, itemId, status),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [...orderKeys.sales(), "detail", orderId] });
-      void queryClient.invalidateQueries({ queryKey: [...orderKeys.sales(), "items", orderId] });
+    },
+  });
+}
+
+export function useConfirmItemDelivery(orderId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (itemId: string) => confirmItemDelivery(orderId, itemId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
+      void queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
     },
   });
 }

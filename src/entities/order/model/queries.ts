@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getOrder, getOrdersHistory, getSalesHistory, getSaleDetail, getSaleItems } from "../api/order";
+import { getOrder, getOrdersHistory, getSalesHistory, getSaleDetail } from "../api/order";
 import { useSessionUserId } from "@/shared/auth";
 import type { OrderResponse } from "./types";
 
@@ -45,18 +45,6 @@ export function useSaleDetail(orderId: string | undefined) {
     queryFn: () => {
       if (!orderId) throw new Error("No order ID provided");
       return getSaleDetail(orderId);
-    },
-    enabled: !!userId && !!orderId,
-  });
-}
-
-export function useSaleItems(orderId: string | undefined) {
-  const userId = useSessionUserId();
-  return useQuery({
-    queryKey: [...orderKeys.sales(), "items", orderId],
-    queryFn: () => {
-      if (!orderId) throw new Error("No order ID provided");
-      return getSaleItems(orderId);
     },
     enabled: !!userId && !!orderId,
   });

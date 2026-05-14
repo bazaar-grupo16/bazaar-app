@@ -107,23 +107,23 @@ export function cancelOrder(orderId: string) {
   );
 }
 
-export function getSaleItems(orderId: string) {
-  return wrapRequest<{ items: OrderItemResponse[] }>(
-    protectedApi.get(`/orders/sales/${orderId}/`),
-    `GET /orders/sales/${orderId}/`,
-  );
-}
-
 export function updateSaleItemStatus(orderId: string, itemId: string, status: string) {
   return wrapRequest<OrderItemResponse>(
-    protectedApi.patch(`/orders/sales/${orderId}/${itemId}/status`, { status }),
-    `PATCH /orders/sales/${orderId}/${itemId}/status`,
+    protectedApi.patch(`/orders/sales/${orderId}/items/${itemId}/status`, { status }),
+    `PATCH /orders/sales/${orderId}/items/${itemId}/status`,
   );
 }
 
 export function cancelSaleItem(orderId: string, itemId: string) {
   return wrapRequest<OrderItemResponse>(
-    protectedApi.put(`/orders/sales/${orderId}/${itemId}/cancel`, {}),
-    `PUT /orders/sales/${orderId}/${itemId}/cancel`,
+    protectedApi.put(`/orders/sales/${orderId}/items/${itemId}/cancel`, {}),
+    `PUT /orders/sales/${orderId}/items/${itemId}/cancel`,
+  );
+}
+
+export function confirmItemDelivery(orderId: string, itemId: string) {
+  return wrapRequest<OrderItemResponse>(
+    protectedApi.post(`/orders/${orderId}/items/${itemId}/confirm-delivery`, {}),
+    `POST /orders/${orderId}/items/${itemId}/confirm-delivery`,
   );
 }

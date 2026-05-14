@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert, TextInput, Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import type { RootStackParamList } from "@/navigation";
-import { useOrder, useSaleDetail, useUpdateOrderStatus, useCancelOrder, useCancelSaleItem, useSaleItems } from "@/entities/order";
+import { useOrder, useSaleDetail, useUpdateOrderStatus, useCancelOrder, useCancelSaleItem, useConfirmItemDelivery } from "@/entities/order";
 import type { OrderStatus } from "@/entities/order";
 import { Button } from "@/shared/ui";
 import { colors, spacing, typography, radius } from "@/shared/styles";
@@ -15,6 +16,7 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
 };
 
 const BUYER_CANCELLABLE: OrderStatus[] = ["PENDIENTE_DE_PAGO", "CONFIRMADA", "EN_PREPARACION"];
+const SELLER_CANCELLABLE: OrderStatus[] = ["CONFIRMADA"];
 const SELLER_ITEM_CANCELLABLE: OrderStatus[] = ["CONFIRMADA", "EN_PREPARACION"];
 
 const NEXT_STATUS_LABEL: Partial<Record<OrderStatus, string>> = {
@@ -30,6 +32,8 @@ export function OrderDetailPage() {
   const navigation = useNavigation();
   const route = useRoute<OrderDetailRouteProp>();
   const { orderId, fromCheckout, fromSales } = route.params;
+  const [trackingModalVisible, setTrackingModalVisible] = useState(false);
+  const [trackingInput, setTrackingInput] = useState("");
 
   const handleBack = () => {
     if (fromCheckout) {
@@ -45,11 +49,7 @@ export function OrderDetailPage() {
   const { mutate: advanceStatus, isPending: isAdvancing } = useUpdateOrderStatus(orderId);
   const { mutate: cancelOrderMutate, isPending: isCancelling } = useCancelOrder(orderId);
   const { mutate: cancelItem, isPending: isCancellingItem, variables: cancellingItemId } = useCancelSaleItem(orderId);
-  const { data: saleItemsData } = useSaleItems(fromSales ? orderId : undefined);
-
-  const saleItemsById = saleItemsData?.items
-    ? Object.fromEntries(saleItemsData.items.map((i) => [i.id, i]))
-    : {} as Record<string, { status?: string }>;
+  const { mutate: confirmDelivery, isPending: isConfirmingDelivery, variables: confirmingItemId } = useConfirmItemDelivery(orderId);
 
   const pageTitle = fromSales ? "Detalle de Venta" : "Detalle de Orden";
 
@@ -58,6 +58,13 @@ export function OrderDetailPage() {
     const next = NEXT_STATUS[order.status];
     const label = NEXT_STATUS_LABEL[order.status];
     if (!next || !label) return;
+
+    if (order.status === "EN_PREPARACION") {
+      setTrackingInput("");
+      setTrackingModalVisible(true);
+      return;
+    }
+
     Alert.alert(
       "Confirmar cambio de estado",
       `¿Querés avanzar la orden a "${next.replace(/_/g, " ")}"?`,
@@ -66,6 +73,11 @@ export function OrderDetailPage() {
         { text: "Confirmar", onPress: () => advanceStatus(next) },
       ],
     );
+  };
+
+  const handleConfirmShipment = () => {
+    setTrackingModalVisible(false);
+    advanceStatus("ENVIADA");
   };
 
   const handleCancelOrder = () => {
@@ -86,6 +98,17 @@ export function OrderDetailPage() {
       [
         { text: "No, volver", style: "cancel" },
         { text: "Sí, cancelar", style: "destructive", onPress: () => cancelItem(itemId) },
+      ],
+    );
+  };
+
+  const handleConfirmDelivery = (itemId: string, itemName: string) => {
+    Alert.alert(
+      "Confirmar recepción",
+      `¿Confirmás que recibiste "${itemName}"?`,
+      [
+        { text: "No, volver", style: "cancel" },
+        { text: "Sí, confirmar", onPress: () => confirmDelivery(itemId) },
       ],
     );
   };
@@ -139,6 +162,39 @@ export function OrderDetailPage() {
         <Text style={styles.pageTitle}>{pageTitle}</Text>
       </View>
 
+      <Modal
+        visible={trackingModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTrackingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Código de seguimiento</Text>
+            <Text style={styles.modalSubtitle}>Ingresá el código de seguimiento (opcional)</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={trackingInput}
+              onChangeText={setTrackingInput}
+              placeholder="Ej: AR123456789"
+              autoCapitalize="characters"
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => setTrackingModalVisible(false)}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButtonPrimary} onPress={handleConfirmShipment}>
+                <Text style={styles.modalButtonPrimaryText}>Confirmar envío</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}>
         <View style={styles.section}>
           <Text style={styles.orderId}>Orden #{order.order_id.split("-")[0]}</Text>
@@ -167,19 +223,30 @@ export function OrderDetailPage() {
           </Text>
         </View>
 
+        {!fromSales && order.tracking_code && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Código de seguimiento</Text>
+            <View style={styles.trackingRow}>
+              <Ionicons name="locate-outline" size={20} color={colors.brand[500]} />
+              <Text style={styles.trackingCode}>{order.tracking_code}</Text>
+            </View>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Items</Text>
           {order.items.map((item) => {
-            const saleItem = saleItemsById[item.id];
             const canCancelItem = fromSales && SELLER_ITEM_CANCELLABLE.includes(order.status);
+            const canConfirmDelivery = !fromSales && (order.status === "ENVIADA" || item.status === "ENVIADO");
             const isThisItemCancelling = isCancellingItem && cancellingItemId === item.id;
+            const isThisItemConfirming = isConfirmingDelivery && confirmingItemId === item.id;
             return (
               <View key={item.id} style={styles.itemRow}>
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemName}>{item.product_name}</Text>
                   <Text style={styles.itemQuantity}>Cantidad: {item.quantity}</Text>
-                  {saleItem?.status && (
-                    <Text style={styles.itemStatus}>{saleItem.status.replace(/_/g, " ")}</Text>
+                  {item.status && (
+                    <Text style={styles.itemStatus}>{item.status.replace(/_/g, " ")}</Text>
                   )}
                 </View>
                 <View style={styles.itemRight}>
@@ -197,6 +264,19 @@ export function OrderDetailPage() {
                       )}
                     </TouchableOpacity>
                   )}
+                  {canConfirmDelivery && (
+                    <TouchableOpacity
+                      onPress={() => handleConfirmDelivery(item.id, item.product_name)}
+                      disabled={isConfirmingDelivery}
+                      style={styles.confirmButton}
+                    >
+                      {isThisItemConfirming ? (
+                        <ActivityIndicator size="small" color={colors.brand[500]} />
+                      ) : (
+                        <Ionicons name="checkmark-circle-outline" size={20} color={colors.brand[500]} />
+                      )}
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             );
@@ -207,16 +287,16 @@ export function OrderDetailPage() {
           </View>
         </View>
 
-        {order.transactions && order.transactions.length > 0 && (
+        {order.status_history && order.status_history.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Historial</Text>
-            {order.transactions.map((t, i) => (
+            {order.status_history.map((t, i) => (
               <View key={i} style={styles.transactionRow}>
                 <View style={styles.transactionDot} />
                 <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionStatus}>{t.status.replace(/_/g, " ")}</Text>
+                  <Text style={styles.transactionStatus}>{t.new_status.replace(/_/g, " ")}</Text>
                   <Text style={styles.transactionDate}>
-                    {new Date(t.changed_at).toLocaleDateString("es-AR", {
+                    {new Date(t.timestamp).toLocaleDateString("es-AR", {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
@@ -232,7 +312,7 @@ export function OrderDetailPage() {
 
         {fromSales && NEXT_STATUS[order.status] && (
           <TouchableOpacity
-            style={[styles.advanceButton, isAdvancing && styles.advanceButtonDisabled]}
+            style={[styles.advanceButton, isAdvancing && styles.buttonDisabled]}
             onPress={handleAdvanceStatus}
             disabled={isAdvancing}
             activeOpacity={0.8}
@@ -248,9 +328,27 @@ export function OrderDetailPage() {
           </TouchableOpacity>
         )}
 
+        {fromSales && SELLER_CANCELLABLE.includes(order.status) && (
+          <TouchableOpacity
+            style={[styles.cancelButton, isCancelling && styles.buttonDisabled]}
+            onPress={handleCancelOrder}
+            disabled={isCancelling}
+            activeOpacity={0.8}
+          >
+            {isCancelling ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <Ionicons name="close-circle-outline" size={20} color={colors.white} />
+                <Text style={styles.advanceButtonText}>Cancelar orden</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+
         {!fromSales && BUYER_CANCELLABLE.includes(order.status) && (
           <TouchableOpacity
-            style={[styles.cancelButton, isCancelling && styles.advanceButtonDisabled]}
+            style={[styles.cancelButton, isCancelling && styles.buttonDisabled]}
             onPress={handleCancelOrder}
             disabled={isCancelling}
             activeOpacity={0.8}
@@ -347,6 +445,17 @@ const styles = StyleSheet.create({
     color: colors.gray[600],
     lineHeight: 22,
   },
+  trackingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  trackingCode: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.brand[600],
+    letterSpacing: 1,
+  },
   itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -413,6 +522,9 @@ const styles = StyleSheet.create({
   cancelItemButton: {
     padding: spacing.xs,
   },
+  confirmButton: {
+    padding: spacing.xs,
+  },
   transactionRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -456,12 +568,75 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
   },
-  advanceButtonDisabled: {
+  buttonDisabled: {
     opacity: 0.6,
   },
   advanceButtonText: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
     color: colors.white,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  modalBox: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    width: "100%",
+    gap: spacing.sm,
+  },
+  modalTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+  },
+  modalSubtitle: {
+    fontSize: typography.size.sm,
+    color: colors.gray[500],
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: typography.size.md,
+    color: colors.gray[900],
+    marginTop: spacing.xs,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  modalButtonSecondary: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    alignItems: "center",
+  },
+  modalButtonSecondaryText: {
+    fontSize: typography.size.sm,
+    color: colors.gray[700],
+    fontWeight: typography.weight.semibold,
+  },
+  modalButtonPrimary: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.brand[500],
+    alignItems: "center",
+  },
+  modalButtonPrimaryText: {
+    fontSize: typography.size.sm,
+    color: colors.white,
+    fontWeight: typography.weight.semibold,
   },
 });

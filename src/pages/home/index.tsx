@@ -526,6 +526,7 @@ function HomeProductCard({ product, isFavorite, onFavorite, onPress }: {
   onPress: () => void;
 }) {
   const firstImage = product.images?.[0];
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.82}>
       <View style={styles.imageContainer}>
@@ -711,6 +712,8 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.gray[900], lineHeight: 18 },
   cardPrice: { fontSize: typography.size.md, fontWeight: typography.weight.bold, color: colors.brand[500] },
   cardCategory: { fontSize: 12, color: colors.gray[400] },
+  cardSellerRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 1 },
+  cardSeller: { fontSize: 11, color: colors.gray[400], flex: 1 },
   sectionTitle: {
     fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,
