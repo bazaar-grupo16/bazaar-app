@@ -67,6 +67,7 @@ export function RootNavigator() {
       </Stack.Navigator>
     ) : (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Tabs" component={TabsNavigator} />
         <Stack.Screen name="Login" component={LoginPage} />
       </Stack.Navigator>
     )
