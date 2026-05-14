@@ -156,8 +156,8 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const MOCK_SELLER_ID = "222e52aa-d03b-46c6-845e-83605cdfa319";
   //sacar mock por product.sellerId
   const { data: sellerProfile } = useQuery({
-    queryKey: ["seller-profile", MOCK_SELLER_ID],
-    queryFn: () => getPublicProfile(MOCK_SELLER_ID),
+    queryKey: ["seller-profile", product.sellerId],
+    queryFn: () => getPublicProfile(product.sellerId),
   });
 
   const sellerName = sellerProfile?.name ?? "Vendedor";
@@ -396,6 +396,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
 
       <SellerProfileModal
         sellerId={product.sellerId}
+        currentProductId={product.id}
         visible={sellerModalVisible}
         onClose={() => setSellerModalVisible(false)}
       />
@@ -423,76 +424,110 @@ function GlassButton({
 
 function SellerProfileModal({
   sellerId,
+  currentProductId,
   visible,
   onClose,
 }: {
   sellerId: string;
+  currentProductId: string;
   visible: boolean;
   onClose: () => void;
 }) {
-  const MOCK_SELLER_ID = "222e52aa-d03b-46c6-845e-83605cdfa319";
-  //sacar mock por product.sellerId
-  const { data, isLoading } = useQuery({
-    queryKey: ["seller-profile", MOCK_SELLER_ID],
-    queryFn: () => getPublicProfile(MOCK_SELLER_ID),
+  const navigation = useNavigation<any>();
+
+  const { data: profileData, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ["seller-profile", sellerId],
+    queryFn: () => getPublicProfile(sellerId),
     enabled: visible,
     retry: false,
   });
 
-  const displayName = data?.name ?? "Vendedor";
+  const { data: productsData, isLoading: isLoadingProducts } = useQuery({
+    queryKey: ["seller-products", sellerId],
+    queryFn: () => apiGet<any>(`/catalog/products?seller_id=${sellerId}`),
+    enabled: visible,
+  });
+  const isLoading = isLoadingProfile || isLoadingProducts;
+  const otherProducts = (productsData?.data ?? productsData ?? [])
+    .filter((p: any) => p.id !== currentProductId);
+
+  const displayName = profileData?.name ?? "Vendedor";
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+        
         <View style={styles.modalSheet}>
           <View style={styles.modalHandle} />
-
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Perfil del vendedor</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-              <Ionicons name="close" size={22} color={colors.gray[500]} />
-            </TouchableOpacity>
-          </View>
-
-          {isLoading ? (
-            <View style={styles.modalLoading}>
-              <ActivityIndicator color={colors.brand[500]} />
+          
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Perfil del vendedor</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close" size={22} color={colors.gray[500]} />
+              </TouchableOpacity>
             </View>
-          ) : (
-            <>
-              <View style={styles.modalAvatarContainer}>
-                {/* Si tiene foto, la mostramos. Si no, mostramos la inicial */}
-                {data?.profile_picture_url ? (
-                  <Image 
-                    source={{ uri: data.profile_picture_url }} 
-                    style={styles.modalAvatarImage} 
-                  />
-                ) : (
-                  <View style={styles.modalAvatar}>
-                    <Text style={styles.modalAvatarText}>{initial}</Text>
-                  </View>
-                )}
-                
-                <Text style={styles.modalSellerName}>{displayName}</Text>
-              </View>
 
-              {/* Agregamos la descripción si el vendedor escribió una */}
-              {data?.description && (
-                 <Text style={styles.modalSellerDescription}>{data.description}</Text>
-              )}
+            {isLoading ? (
+              <ActivityIndicator style={{ marginTop: 20 }} color={colors.brand[500]} />
+            ) : (
+              <>
+                {/* Info del Vendedor */}
+                <View style={styles.modalAvatarContainer}>
+                  {profileData?.profile_picture_url ? (
+                    <Image source={{ uri: profileData.profile_picture_url }} style={styles.modalAvatarImage} />
+                  ) : (
+                    <View style={styles.modalAvatar}>
+                      <Text style={styles.modalAvatarText}>{displayName.charAt(0)}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.modalSellerName}>{displayName}</Text>
 
-              <View style={styles.modalStats}>
-                {/* Dejamos preparado el de ventas como pediste */}
-                <View style={styles.modalStat}>
-                  <Text style={styles.modalStatValue}>—</Text>
-                  <Text style={styles.modalStatLabel}>Ventas</Text>
+                  {profileData?.description && (
+                    <Text style={styles.modalSellerDescription}>
+                      {profileData.description}
+                    </Text>
+                  )}
                 </View>
-                {/* Eliminamos calificación y miembro desde */}
-              </View>
-            </>
-          )}
+                {/*Seccion de Productos */}
+                <View style={styles.otherProductsSection}>
+                  <Text style={styles.sectionTitle}>Otras publicaciones del vendedor</Text>
+                  
+                  {otherProducts.length > 0 ? (
+                    <View style={styles.miniGrid}>
+                      {otherProducts.map((item: any) => (
+                        <TouchableOpacity 
+                          key={item.id} 
+                          style={styles.miniCard}
+                          onPress={() => {
+                            onClose();
+                            (navigation as any).push("ProductDetail", { productId: item.id });
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Image source={{ uri: item.images[0] }} style={styles.miniImage} />
+                          <View style={styles.miniInfo}>
+                            {/* 👇 AHORA MOSTRAMOS EL TÍTULO */}
+                            <Text style={styles.miniTitle} numberOfLines={2}>
+                              {item.title}
+                            </Text>
+                            <Text style={styles.miniPrice}>${item.price}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.noMoreProducts}>No hay otras publicaciones activas.</Text>
+                  )}
+                </View>
+              </>
+            )}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -1099,5 +1134,69 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  bioContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.gray[100], // Fondo sutil
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 8,
+    marginTop: spacing.sm,
+    marginHorizontal: spacing.xl, // Para que no toque los bordes de la pantalla
+  },
+  bioIcon: {
+    marginRight: 8,
+  },
+
+  // --- Estilos de los Productos ---
+  otherProductsSection: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[100],
+  },
+  miniGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between", // Espacia las tarjetas automáticamente
+    gap: 12,
+  },
+  miniCard: {
+    width: '48%', // Entran exactamente 2 por fila con espacio en el medio
+    backgroundColor: colors.white,
+    borderRadius: 12, // Bordes más redondeados
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    marginBottom: 4,
+  },
+  miniImage: {
+    width: "100%",
+    height: 140, // Imagen más alta para lucir el producto
+    backgroundColor: colors.gray[50],
+    resizeMode: "cover",
+  },
+  miniInfo: {
+    padding: spacing.sm,
+    gap: 4,
+  },
+  miniTitle: {
+    fontSize: 13,
+    color: colors.gray[700],
+    lineHeight: 18,
+    minHeight: 36, // Mantiene la altura aunque el texto sea de 1 sola línea
+  },
+  miniPrice: {
+    fontSize: 16, // Precio más destacado
+    fontWeight: "bold",
+    color: colors.gray[900],
+  },
+  noMoreProducts: {
+    fontSize: 14,
+    color: colors.gray[400],
+    textAlign: "center",
+    marginTop: spacing.md,
+    fontStyle: 'italic',
   },
 });
