@@ -1,13 +1,13 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors, typography, spacing, radius } from "@/shared/styles";
 import { Stat } from "../types";
 
-const USER_NAME    = "user_name";
-const USER_INITIAL = "U";
-
 interface Props {
+  name?: string;
+  bio?: string | null;
+  avatarUrl?: string | null;
   publicationsCount: number;
   salesCount: number;
   purchasesCount: number;
@@ -15,7 +15,7 @@ interface Props {
   onSettingsPress?: (() => void) | undefined;
 }
 
-export function ProfileHeader({ publicationsCount, salesCount, purchasesCount, onEditPress, onSettingsPress }: Props) {
+export function ProfileHeader({ name, bio, avatarUrl, publicationsCount, salesCount, purchasesCount, onEditPress, onSettingsPress }: Props) {
   const insets = useSafeAreaInsets();
 
   const stats: Stat[] = [
@@ -23,6 +23,9 @@ export function ProfileHeader({ publicationsCount, salesCount, purchasesCount, o
     { label: "Ventas",        value: String(salesCount),        color: "#22c55e" },
     { label: "Compras",       value: String(purchasesCount),    color: "#3b82f6" },
   ];
+
+  const displayName = name ?? "Usuario";
+  const displayInitial = name ? name.charAt(0).toUpperCase() : "U";
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
@@ -43,11 +46,16 @@ export function ProfileHeader({ publicationsCount, salesCount, purchasesCount, o
       {/* Avatar + info */}
       <View style={styles.userRow}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarInitial}>{USER_INITIAL}</Text>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarInitial}>{displayInitial}</Text>
+          )}
         </View>
 
         <View style={styles.userDetails}>
-          <Text style={styles.userName}>{USER_NAME}</Text>
+          <Text style={styles.userName}>{displayName}</Text>
+          
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={13} color="#fbbf24" />
             <Text style={styles.ratingText}>4.9 · Miembro desde mar 2024</Text>
@@ -56,6 +64,10 @@ export function ProfileHeader({ publicationsCount, salesCount, purchasesCount, o
             <Ionicons name="location-outline" size={13} color={colors.gray[400]} />
             <Text style={styles.locationText}>Palermo, Buenos Aires</Text>
           </View>
+
+          {bio && (
+            <Text style={styles.bioText}>{bio}</Text>
+          )}
         </View>
       </View>
 
@@ -114,6 +126,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand[500],
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   avatarInitial: {
     color: colors.white,
@@ -148,6 +165,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.gray[400],
   },
+  bioText: {
+    fontSize: 13,
+    color: colors.gray[700],
+    marginTop: 4,
+    fontStyle: "italic",
+  },
   statsRow: {
     flexDirection: "row",
     gap: spacing.sm,
@@ -172,4 +195,3 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
-
