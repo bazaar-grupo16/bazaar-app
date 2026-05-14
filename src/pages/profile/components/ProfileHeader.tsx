@@ -55,15 +55,6 @@ export function ProfileHeader({ name, bio, avatarUrl, publicationsCount, salesCo
 
         <View style={styles.userDetails}>
           <Text style={styles.userName}>{displayName}</Text>
-          
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={13} color="#fbbf24" />
-            <Text style={styles.ratingText}>4.9 · Miembro desde mar 2024</Text>
-          </View>
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color={colors.gray[400]} />
-            <Text style={styles.locationText}>Palermo, Buenos Aires</Text>
-          </View>
 
           {bio && (
             <Text style={styles.bioText}>{bio}</Text>
