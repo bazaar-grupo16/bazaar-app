@@ -9,6 +9,7 @@ import * as ImagePicker from "expo-image-picker";
 import { colors, typography, spacing, radius } from "@/shared/styles";
 import type { Profile } from "@/entities/profile/model/types";
 import { updateMyProfile, uploadAvatar } from "@/entities/profile/api/profile";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   visible: boolean;
@@ -19,6 +20,7 @@ interface Props {
 
 export function EditProfileModal({ visible, profile, onClose, onSaveSuccess }: Props) {
   // Estados del formulario
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -76,6 +78,8 @@ export function EditProfileModal({ visible, profile, onClose, onSaveSuccess }: P
         description: bio,
         profile_picture_url: finalAvatarUrl,
       });
+
+      await queryClient.invalidateQueries({ queryKey: ["my-profile"] });
       
       onSaveSuccess(updatedProfile);
       onClose();

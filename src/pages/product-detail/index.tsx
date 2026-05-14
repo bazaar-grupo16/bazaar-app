@@ -28,6 +28,7 @@ import { useProduct, getProductShareLink } from "@/entities/product";
 import type { Product } from "@/entities/product";
 import { useAddToCart, useCart } from "@/entities/cart";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
+import { getPublicProfile } from "@/entities/profile/api/profile";
 import { useSessionUserId, clearAuthSession, usePendingActionStore } from "@/shared/auth";
 import { ApiError, apiGet } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
@@ -173,6 +174,15 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   }, [maxToAdd, quantity]);
 
   const addToCart = useAddToCart();
+  const MOCK_SELLER_ID = "222e52aa-d03b-46c6-845e-83605cdfa319";
+  //sacar mock por product.sellerId
+  const { data: sellerProfile } = useQuery({
+    queryKey: ["seller-profile", product.sellerId],
+    queryFn: () => getPublicProfile(product.sellerId),
+  });
+
+  const sellerName = sellerProfile?.name ?? "Vendedor";
+  const sellerInitial = sellerName.charAt(0).toUpperCase();
   const [feedback, setFeedback] = useState<AddToCartFeedback>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -311,13 +321,23 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
             onPress={() => setSellerModalVisible(true)}
           >
             <View style={styles.sellerAvatar}>
-              <Text style={styles.sellerAvatarText}>
-                {product.sellerId.charAt(0).toUpperCase()}
-              </Text>
+              {/* Si tiene foto la mostramos, sino mostramos la inicial */}
+              {sellerProfile?.profile_picture_url ? (
+                <Image 
+                  source={{ uri: sellerProfile.profile_picture_url }} 
+                  style={styles.sellerRowAvatarImage} 
+                />
+              ) : (
+                <Text style={styles.sellerAvatarText}>
+                  {sellerInitial}
+                </Text>
+              )}
             </View>
             <View style={styles.sellerInfo}>
-              <Text style={styles.sellerName}>Vendedor</Text>
-              <Text style={styles.sellerId}>ID: {product.sellerId}</Text>
+              <Text style={styles.sellerLabel}>Vendedor</Text>
+              <Text style={styles.sellerName} numberOfLines={1}>
+                {sellerName}
+              </Text>
             </View>
             <View style={styles.sellerChevron}>
               <Text style={styles.sellerProfileText}>Ver perfil</Text>
@@ -397,6 +417,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
 
       <SellerProfileModal
         sellerId={product.sellerId}
+        currentProductId={product.id}
         visible={sellerModalVisible}
         onClose={() => setSellerModalVisible(false)}
       />
@@ -424,69 +445,110 @@ function GlassButton({
 
 function SellerProfileModal({
   sellerId,
+  currentProductId,
   visible,
   onClose,
 }: {
   sellerId: string;
+  currentProductId: string;
   visible: boolean;
   onClose: () => void;
 }) {
-  const { data, isLoading } = useQuery({
+  const navigation = useNavigation<any>();
+
+  const { data: profileData, isLoading: isLoadingProfile } = useQuery({
     queryKey: ["seller-profile", sellerId],
-    queryFn: () => apiGet<SellerProfile>(`/users/${sellerId}`),
+    queryFn: () => getPublicProfile(sellerId),
     enabled: visible,
     retry: false,
   });
 
-  const displayName = data?.name ?? "Vendedor";
+  const { data: productsData, isLoading: isLoadingProducts } = useQuery({
+    queryKey: ["seller-products", sellerId],
+    queryFn: () => apiGet<any>(`/catalog/products?seller_id=${sellerId}`),
+    enabled: visible,
+  });
+  const isLoading = isLoadingProfile || isLoadingProducts;
+  const otherProducts = (productsData?.data ?? productsData ?? [])
+    .filter((p: any) => p.id !== currentProductId);
+
+  const displayName = profileData?.name ?? "Vendedor";
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+        
         <View style={styles.modalSheet}>
           <View style={styles.modalHandle} />
-
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Perfil del vendedor</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-              <Ionicons name="close" size={22} color={colors.gray[500]} />
-            </TouchableOpacity>
-          </View>
-
-          {isLoading ? (
-            <View style={styles.modalLoading}>
-              <ActivityIndicator color={colors.brand[500]} />
+          
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Perfil del vendedor</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close" size={22} color={colors.gray[500]} />
+              </TouchableOpacity>
             </View>
-          ) : (
-            <>
-              <View style={styles.modalAvatarContainer}>
-                <View style={styles.modalAvatar}>
-                  <Text style={styles.modalAvatarText}>{initial}</Text>
-                </View>
-                <Text style={styles.modalSellerName}>{displayName}</Text>
-                <Text style={styles.modalSellerId}>ID: {sellerId}</Text>
-              </View>
 
-              <View style={styles.modalStats}>
-                <View style={styles.modalStat}>
-                  <Text style={styles.modalStatValue}>—</Text>
-                  <Text style={styles.modalStatLabel}>Ventas</Text>
+            {isLoading ? (
+              <ActivityIndicator style={{ marginTop: 20 }} color={colors.brand[500]} />
+            ) : (
+              <>
+                {/* Info del Vendedor */}
+                <View style={styles.modalAvatarContainer}>
+                  {profileData?.profile_picture_url ? (
+                    <Image source={{ uri: profileData.profile_picture_url }} style={styles.modalAvatarImage} />
+                  ) : (
+                    <View style={styles.modalAvatar}>
+                      <Text style={styles.modalAvatarText}>{displayName.charAt(0)}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.modalSellerName}>{displayName}</Text>
+
+                  {profileData?.description && (
+                    <Text style={styles.modalSellerDescription}>
+                      {profileData.description}
+                    </Text>
+                  )}
                 </View>
-                <View style={styles.modalStatDivider} />
-                <View style={styles.modalStat}>
-                  <Text style={styles.modalStatValue}>—</Text>
-                  <Text style={styles.modalStatLabel}>Calificación</Text>
+                {/*Seccion de Productos */}
+                <View style={styles.otherProductsSection}>
+                  <Text style={styles.sectionTitle}>Otras publicaciones del vendedor</Text>
+                  
+                  {otherProducts.length > 0 ? (
+                    <View style={styles.miniGrid}>
+                      {otherProducts.map((item: any) => (
+                        <TouchableOpacity 
+                          key={item.id} 
+                          style={styles.miniCard}
+                          onPress={() => {
+                            onClose();
+                            (navigation as any).push("ProductDetail", { productId: item.id });
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Image source={{ uri: item.images[0] }} style={styles.miniImage} />
+                          <View style={styles.miniInfo}>
+                            {/* 👇 AHORA MOSTRAMOS EL TÍTULO */}
+                            <Text style={styles.miniTitle} numberOfLines={2}>
+                              {item.title}
+                            </Text>
+                            <Text style={styles.miniPrice}>${item.price}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.noMoreProducts}>No hay otras publicaciones activas.</Text>
+                  )}
                 </View>
-                <View style={styles.modalStatDivider} />
-                <View style={styles.modalStat}>
-                  <Text style={styles.modalStatValue}>—</Text>
-                  <Text style={styles.modalStatLabel}>Miembro desde</Text>
-                </View>
-              </View>
-            </>
-          )}
+              </>
+            )}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -1067,5 +1129,95 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.bold,
     color: colors.white,
     letterSpacing: 0.5,
+  },
+  modalAvatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.gray[100],
+  },
+  modalSellerDescription: {
+    fontSize: typography.size.sm,
+    color: colors.gray[700],
+    textAlign: "center",
+    lineHeight: 20,
+    marginTop: -spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  sellerRowAvatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.gray[100],
+  },
+  sellerLabel: {
+    fontSize: 12,
+    color: colors.gray[500],
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  bioContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.gray[100], // Fondo sutil
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 8,
+    marginTop: spacing.sm,
+    marginHorizontal: spacing.xl, // Para que no toque los bordes de la pantalla
+  },
+  bioIcon: {
+    marginRight: 8,
+  },
+
+  // --- Estilos de los Productos ---
+  otherProductsSection: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[100],
+  },
+  miniGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between", // Espacia las tarjetas automáticamente
+    gap: 12,
+  },
+  miniCard: {
+    width: '48%', // Entran exactamente 2 por fila con espacio en el medio
+    backgroundColor: colors.white,
+    borderRadius: 12, // Bordes más redondeados
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    marginBottom: 4,
+  },
+  miniImage: {
+    width: "100%",
+    height: 140, // Imagen más alta para lucir el producto
+    backgroundColor: colors.gray[50],
+    resizeMode: "cover",
+  },
+  miniInfo: {
+    padding: spacing.sm,
+    gap: 4,
+  },
+  miniTitle: {
+    fontSize: 13,
+    color: colors.gray[700],
+    lineHeight: 18,
+    minHeight: 36, // Mantiene la altura aunque el texto sea de 1 sola línea
+  },
+  miniPrice: {
+    fontSize: 16, // Precio más destacado
+    fontWeight: "bold",
+    color: colors.gray[900],
+  },
+  noMoreProducts: {
+    fontSize: 14,
+    color: colors.gray[400],
+    textAlign: "center",
+    marginTop: spacing.md,
+    fontStyle: 'italic',
   },
 });
