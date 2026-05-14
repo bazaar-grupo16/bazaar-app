@@ -70,14 +70,14 @@ export function OrderDetailPage() {
       `¿Querés avanzar la orden a "${next.replace(/_/g, " ")}"?`,
       [
         { text: "Cancelar", style: "cancel" },
-        { text: "Confirmar", onPress: () => advanceStatus(next) },
+        { text: "Confirmar", onPress: () => advanceStatus({ status: next }) },
       ],
     );
   };
 
   const handleConfirmShipment = () => {
     setTrackingModalVisible(false);
-    advanceStatus("ENVIADA");
+    advanceStatus({ status: "ENVIADA", trackingCode: trackingInput.trim() || undefined });
   };
 
   const handleCancelOrder = () => {

@@ -82,9 +82,9 @@ export function getSaleDetail(orderId: string) {
   );
 }
 
-export function updateOrderStatus(orderId: string, status: string) {
+export function updateOrderStatus(orderId: string, status: string, trackingCode?: string) {
   return wrapRequest<OrderResponse>(
-    protectedApi.patch(`/orders/${orderId}/status`, { status }),
+    protectedApi.patch(`/orders/${orderId}/status`, { status, ...(trackingCode ? { tracking_code: trackingCode } : {}) }),
     `PATCH /orders/${orderId}/status`,
   );
 }
@@ -102,8 +102,8 @@ export function getSalesHistory(page: number = 1, size: number = 50, status?: st
 
 export function cancelOrder(orderId: string) {
   return wrapRequest<OrderResponse>(
-    protectedApi.put(`/orders/${orderId}/cancel`, {}),
-    `PUT /orders/${orderId}/cancel`,
+    protectedApi.patch(`/orders/${orderId}/status`, { status: "CANCELADA" }),
+    `PATCH /orders/${orderId}/status (CANCELADA)`,
   );
 }
 
