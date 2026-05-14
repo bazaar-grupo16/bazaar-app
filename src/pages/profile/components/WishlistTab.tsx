@@ -55,6 +55,13 @@ export function WishlistTab() {
         <Ionicons name="heart-outline" size={40} color={colors.gray[300]} />
         <Text style={styles.emptyTitle}>Sin favoritos</Text>
         <Text style={styles.helperText}>Guardá publicaciones que te interesen</Text>
+        <TouchableOpacity
+          style={styles.exploreButton}
+          onPress={() => navigation.navigate("Tabs", { screen: "Home" } as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.exploreButtonText}>Explorar productos</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -176,6 +183,18 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.brand[500],
     fontWeight: typography.weight.semibold,
+  },
+  exploreButton: {
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.brand[500],
+  },
+  exploreButtonText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
   },
   list: {
     paddingHorizontal: spacing.md,

@@ -5,6 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   LayoutAnimation,
@@ -28,6 +29,7 @@ import type { Product } from "@/entities/product";
 import { useAddToCart, useCart } from "@/entities/cart";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
 import { getPublicProfile } from "@/entities/profile/api/profile";
+import { useSessionUserId, clearAuthSession, usePendingActionStore } from "@/shared/auth";
 import { ApiError, apiGet } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
@@ -135,8 +137,27 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const isWishlisted = wishlistData?.items.some((i) => i.product_id === product.id) ?? false;
   const addToWishlist = useAddToWishlist();
   const removeFromWishlist = useRemoveFromWishlist();
+  const userId = useSessionUserId();
+  const setPendingWishlist = usePendingActionStore((s) => s.setPendingWishlist);
 
   const toggleWishlist = () => {
+    if (!userId) {
+      Alert.alert(
+        "Iniciá sesión",
+        "Para guardar favoritos necesitás tener una cuenta.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Iniciar sesión",
+            onPress: () => {
+              setPendingWishlist({ productId: product.id, action: "add" });
+              void clearAuthSession();
+            },
+          },
+        ],
+      );
+      return;
+    }
     if (isWishlisted) {
       removeFromWishlist.mutate(product.id);
     } else {

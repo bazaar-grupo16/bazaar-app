@@ -166,11 +166,7 @@ export function ProfilePage() {
         ) : tab === "ventas" ? (
           <SalesTab />
         ) : (
-          <EmptyState
-            icon={<Ionicons name="heart-outline" size={40} color={colors.gray[300]} />}
-            title="Sin favoritos"
-            subtitle="Guardá publicaciones que te interesen"
-          />
+          <WishlistTab />
         )}
       </View>
 

@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSalesHistory } from "@/entities/order";
 import type { OrderResponse, OrderStatus } from "@/entities/order";
+import type { RootStackParamList } from "@/navigation";
 import { colors, spacing, typography, radius } from "@/shared/styles";
 
 type FilterOption = { label: string; value: OrderStatus | null };
@@ -100,6 +103,7 @@ export function SalesTab() {
 }
 
 function SaleCard({ sale }: { sale: OrderResponse }) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const date = new Date(sale.created_at).toLocaleDateString("es-AR", {
     day: "2-digit",
     month: "short",
@@ -109,7 +113,11 @@ function SaleCard({ sale }: { sale: OrderResponse }) {
   const firstItem = sale.items[0];
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("OrderDetail", { orderId: sale.order_id, fromSales: true })}
+      activeOpacity={0.8}
+    >
       <View style={styles.cardHeader}>
         <Text style={styles.orderId}>#{sale.order_id.split("-")[0]}</Text>
         <Text style={styles.orderDate}>{date}</Text>
@@ -124,7 +132,7 @@ function SaleCard({ sale }: { sale: OrderResponse }) {
         <Text style={styles.orderStatus}>{sale.status.replace(/_/g, " ")}</Text>
         <Text style={styles.orderTotal}>${sale.total_amount.toFixed(2)}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
