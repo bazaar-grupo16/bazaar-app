@@ -2,7 +2,7 @@ import axios from "axios";
 
 import { ApiError } from "@/shared/api";
 import { protectedApi } from "@/shared/api/http";
-import type { CreateOrderRequest, OrderCreatedResponse, OrderListResponse, OrderResponse } from "../model/types";
+import type { CreateOrderRequest, OrderCreatedResponse, OrderItemResponse, OrderListResponse, OrderResponse } from "../model/types";
 
 function toApiError(error: unknown) {
   if (axios.isAxiosError(error) && error.response) {
@@ -82,9 +82,9 @@ export function getSaleDetail(orderId: string) {
   );
 }
 
-export function updateOrderStatus(orderId: string, status: string) {
+export function updateOrderStatus(orderId: string, status: string, trackingCode?: string) {
   return wrapRequest<OrderResponse>(
-    protectedApi.patch(`/orders/${orderId}/status`, { status }),
+    protectedApi.patch(`/orders/${orderId}/status`, { status, ...(trackingCode ? { tracking_code: trackingCode } : {}) }),
     `PATCH /orders/${orderId}/status`,
   );
 }
@@ -97,5 +97,33 @@ export function getSalesHistory(page: number = 1, size: number = 50, status?: st
   return wrapRequest<OrderListResponse>(
     protectedApi.get(`/orders/sales?${params.toString()}`),
     "GET /orders/sales",
+  );
+}
+
+export function cancelOrder(orderId: string) {
+  return wrapRequest<OrderResponse>(
+    protectedApi.patch(`/orders/${orderId}/status`, { status: "CANCELADA" }),
+    `PATCH /orders/${orderId}/status (CANCELADA)`,
+  );
+}
+
+export function updateSaleItemStatus(orderId: string, itemId: string, status: string) {
+  return wrapRequest<OrderItemResponse>(
+    protectedApi.patch(`/orders/sales/${orderId}/items/${itemId}/status`, { status }),
+    `PATCH /orders/sales/${orderId}/items/${itemId}/status`,
+  );
+}
+
+export function cancelSaleItem(orderId: string, itemId: string) {
+  return wrapRequest<OrderItemResponse>(
+    protectedApi.put(`/orders/sales/${orderId}/items/${itemId}/cancel`, {}),
+    `PUT /orders/sales/${orderId}/items/${itemId}/cancel`,
+  );
+}
+
+export function confirmItemDelivery(orderId: string, itemId: string) {
+  return wrapRequest<OrderItemResponse>(
+    protectedApi.post(`/orders/${orderId}/items/${itemId}/confirm-delivery`, {}),
+    `POST /orders/${orderId}/items/${itemId}/confirm-delivery`,
   );
 }

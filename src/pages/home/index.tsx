@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { NotificationsPanel } from "./NotificationsPanel";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -18,6 +19,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useProducts, type Product } from "@/entities/product";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
+import { useSessionUserId, clearAuthSession, usePendingActionStore } from "@/shared/auth";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { PRODUCT_CATEGORIES } from "@/shared/config/categories";
@@ -90,10 +92,13 @@ export function HomePage() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Favorites (wishlist API)
+  const userId = useSessionUserId();
   const { data: wishlistData } = useWishlist();
   const wishlistIds = new Set((wishlistData?.items ?? []).map((i) => i.product_id));
   const addToWishlist = useAddToWishlist();
   const removeFromWishlist = useRemoveFromWishlist();
+  const pendingWishlist = usePendingActionStore((s) => s.pendingWishlist);
+  const setPendingWishlist = usePendingActionStore((s) => s.setPendingWishlist);
 
   // Debounce search
   useEffect(() => {
@@ -159,12 +164,42 @@ export function HomePage() {
     }
   }, [data]);
 
+  // Resume pending wishlist action after authentication
+  useEffect(() => {
+    if (!userId || !pendingWishlist) return;
+    const { productId, action } = pendingWishlist;
+    setPendingWishlist(null);
+    if (action === "add") {
+      addToWishlist.mutate(productId);
+    } else {
+      removeFromWishlist.mutate(productId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, pendingWishlist]);
+
   const hasMore     = allProducts.length < total;
   const isFirstLoad = isLoading && queryOffset === 0;
   const hasSearchIntent = !!searchQuery || !!selectedCategory || !!sortOption || hasPriceFilter;
   const hasInputSearch = !!searchQuery;
 
   const toggleFavorite = (id: string) => {
+    if (!userId) {
+      Alert.alert(
+        "Iniciá sesión",
+        "Para guardar favoritos necesitás tener una cuenta.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Iniciar sesión",
+            onPress: () => {
+              setPendingWishlist({ productId: id, action: "add" });
+              void clearAuthSession();
+            },
+          },
+        ],
+      );
+      return;
+    }
     if (wishlistIds.has(id)) {
       removeFromWishlist.mutate(id);
     } else {
@@ -491,6 +526,7 @@ function HomeProductCard({ product, isFavorite, onFavorite, onPress }: {
   onPress: () => void;
 }) {
   const firstImage = product.images?.[0];
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.82}>
       <View style={styles.imageContainer}>
@@ -676,6 +712,8 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.gray[900], lineHeight: 18 },
   cardPrice: { fontSize: typography.size.md, fontWeight: typography.weight.bold, color: colors.brand[500] },
   cardCategory: { fontSize: 12, color: colors.gray[400] },
+  cardSellerRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 1 },
+  cardSeller: { fontSize: 11, color: colors.gray[400], flex: 1 },
   sectionTitle: {
     fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,

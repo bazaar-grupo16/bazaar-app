@@ -22,3 +22,4 @@ export function useMyProducts(params: MyProductsParams = {}) {
     queryFn: () => getMyProducts(params),
   });
 }
+
