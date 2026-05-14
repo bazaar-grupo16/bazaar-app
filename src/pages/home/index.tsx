@@ -17,10 +17,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useProducts, type Product } from "@/entities/product";
+import { getMyProfile } from "@/entities/profile/api/profile";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { PRODUCT_CATEGORIES } from "@/shared/config/categories";
+import { useQuery } from "@tanstack/react-query";
+import { useAuthStore } from "@/shared/auth";
 
 type HomeNavProp = NativeStackNavigationProp<RootStackParamList, "Tabs">;
 
@@ -64,6 +67,17 @@ const SORT_OPTIONS: Array<{ key: SortOption; label: string; sortBy: SortField; o
 export function HomePage() {
   const navigation = useNavigation<HomeNavProp>();
   const insets = useSafeAreaInsets();
+
+  // Profile info
+  const isGuest = !useAuthStore((state) => state.accessToken);
+  const { data: userProfile } = useQuery({
+    queryKey: ["my-profile"],
+    queryFn: getMyProfile,
+    enabled: !isGuest,
+    staleTime: 1000 * 60 * 5, 
+  });
+  const displayName = userProfile?.name ?? "Usuario";
+  const displayInitial = displayName.charAt(0).toUpperCase();
 
   // Filters
   const [inputText, setInputText]               = useState("");
@@ -240,15 +254,41 @@ export function HomePage() {
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }, showSortOptions && { zIndex: 10 }]}>
         {/* Greeting */}
         <View style={styles.greetingRow}>
-          <View style={styles.greetingLeft}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>{USER_INITIAL}</Text>
+          {isGuest ? (
+            // invited view
+            <TouchableOpacity 
+              style={styles.greetingLeft} 
+              activeOpacity={0.7} 
+              onPress={() => navigation.navigate("Login" as any)}
+            >
+              <View style={[styles.avatar, { backgroundColor: colors.gray[200] }]}>
+                <Ionicons name="person" size={20} color={colors.gray[500]} />
+              </View>
+              <View>
+                <Text style={styles.greetingHola}>Bienvenido a Bazaar</Text>
+                <Text style={[styles.greetingName, { color: colors.brand[500] }]}>Ingresar a mi cuenta</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            // logged-in view
+            <View style={styles.greetingLeft}>
+              <View style={[styles.avatar, { overflow: "hidden" }]}>
+                {userProfile?.profile_picture_url ? (
+                  <Image 
+                    source={{ uri: userProfile.profile_picture_url }} 
+                    style={styles.avatarImage} 
+                  />
+                ) : (
+                  <Text style={styles.avatarInitial}>{displayInitial}</Text>
+                )}
+              </View>
+              <View>
+                <Text style={styles.greetingHola}>¡Hola de vuelta!</Text>
+                <Text style={styles.greetingName} numberOfLines={1}>{displayName} 👋</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.greetingHola}>¡Hola de vuelta!</Text>
-              <Text style={styles.greetingName}>{USER_NAME} 👋</Text>
-            </View>
-          </View>
+          )}
+
           <TouchableOpacity style={styles.bellButton} activeOpacity={0.7} onPress={() => setNotificationsOpen(true)}>
             <Ionicons name="notifications-outline" size={22} color={colors.gray[700]} />
           </TouchableOpacity>
@@ -755,5 +795,10 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.gray[400],
     marginTop: spacing.md,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
 });
