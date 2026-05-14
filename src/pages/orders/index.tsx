@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: typography.size.sm,
-    color: colors.gray[600],
+    color: colors.gray[500],
     fontWeight: typography.weight.semibold,
   },
   chipTextActive: {
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: typography.size.sm,
-    color: colors.gray[600],
+    color: colors.gray[500],
   },
   orderTotal: {
     fontSize: typography.size.lg,
