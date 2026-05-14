@@ -22,8 +22,6 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { WishlistTab } from "./components/WishlistTab";
 import { EditProfileModal } from "./components/EditProfileModal";
 
-import { SalesTab } from "./components/SalesTab";
-
 const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: string }> = {
   activas:    { title: "Sin publicaciones activas",    subtitle: "Publicá algo y empezá a vender" },
   inactivas:  { title: "Sin publicaciones inactivas",  subtitle: "Podés desactivar publicaciones desde el editor" },
@@ -163,8 +161,6 @@ export function ProfilePage() {
               )}
             </View>
           </>
-        ) : tab === "ventas" ? (
-          <SalesTab />
         ) : (
           <WishlistTab />
         )}
