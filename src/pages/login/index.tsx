@@ -24,12 +24,17 @@ import { Button } from "@/shared/ui/Button";
 
 import { persistAuthSession } from "@/shared/auth";
 
+import { useNavigation } from "@react-navigation/native";
+
 const HERO_IMAGE = "https://images.unsplash.com/photo-1548335684-7d082b06d74d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWJyYW50JTIwY29sb3JmdWwlMjBtYXJrZXQlMjBwcm9kdWN0cyUyMG92ZXJoZWFkfGVufDF8fHx8MTc3NTQ4MzI1Mnww&ixlib=rb-4.1.0&q=80&w=1080";
 
 type Tab = "login" | "register";
 const { height } = Dimensions.get("window");
 
 export function LoginPage() {
+
+  const navigation = useNavigation<any>();
+
   const [tab, setTab] = useState<Tab>("login");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -398,6 +403,15 @@ export function LoginPage() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={styles.guestButton}
+            onPress={() => navigation.navigate("Tabs")} 
+            activeOpacity={0.7}
+          >
+            <Text style={styles.guestButtonText}>Ingresar como invitado</Text>
+          </TouchableOpacity>
+
         </ScrollView>
       </View>
       <Modal
@@ -728,5 +742,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: spacing.md,
-  }
+  },
+  guestButton: {
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guestButtonText: {
+    color: colors.gray[500],
+    fontSize: 14,
+    fontWeight: typography.weight.semibold,
+    textDecorationLine: "underline",
+  },
 });
