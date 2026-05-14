@@ -5,12 +5,13 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { useOrdersHistory, type OrderResponse, type OrderStatus } from "@/entities/order";
+import { useOrdersHistory, useSalesHistory, type OrderResponse, type OrderStatus } from "@/entities/order";
 import { colors, spacing, typography, radius } from "@/shared/styles";
 
+type Section = "compras" | "ventas";
 type FilterOption = { label: string; value: OrderStatus | null };
 
-const FILTERS: FilterOption[] = [
+const PURCHASE_FILTERS: FilterOption[] = [
   { label: "Todas", value: null },
   { label: "Pendiente de pago", value: "PENDIENTE_DE_PAGO" },
   { label: "Confirmada", value: "CONFIRMADA" },
@@ -23,22 +24,46 @@ const FILTERS: FilterOption[] = [
   { label: "Reembolso procesado", value: "REEMBOLSO_PROCESADO" },
 ];
 
+const SALE_FILTERS: FilterOption[] = [
+  { label: "Todas", value: null },
+  { label: "Confirmada", value: "CONFIRMADA" },
+  { label: "En preparación", value: "EN_PREPARACION" },
+  { label: "Enviada", value: "ENVIADA" },
+  { label: "Entregada", value: "ENTREGADA" },
+  { label: "Cancelada", value: "CANCELADA" },
+];
+
 export function OrdersPage() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
-  const { data, isLoading, isRefetching, refetch } = useOrdersHistory(1, 50, selectedStatus ?? undefined);
+  const [section, setSection] = useState<Section>("compras");
+  const [purchaseStatus, setPurchaseStatus] = useState<OrderStatus | null>(null);
+  const [saleStatus, setSaleStatus] = useState<OrderStatus | null>(null);
 
-  const orders = data?.orders ?? [];
+  const {
+    data: purchaseData,
+    isLoading: purchaseLoading,
+    isRefetching: purchaseRefetching,
+    refetch: refetchPurchases,
+  } = useOrdersHistory(1, 50, purchaseStatus ?? undefined);
 
-  const renderItem = useCallback(
+  const {
+    data: salesData,
+    isLoading: salesLoading,
+    isRefetching: salesRefetching,
+    refetch: refetchSales,
+  } = useSalesHistory(1, 50, saleStatus ?? undefined);
+
+  const orders = purchaseData?.orders ?? [];
+  const sales = salesData?.orders ?? [];
+
+  const renderPurchaseItem = useCallback(
     ({ item }: { item: OrderResponse }) => {
       const date = new Date(item.created_at).toLocaleDateString("es-AR", {
         day: "2-digit",
         month: "short",
         year: "numeric",
       });
-
       return (
         <TouchableOpacity
           style={styles.card}
@@ -58,57 +83,132 @@ export function OrdersPage() {
     [navigation]
   );
 
+  const renderSaleItem = useCallback(
+    ({ item }: { item: OrderResponse }) => {
+      const date = new Date(item.created_at).toLocaleDateString("es-AR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+      const firstItem = item.items[0];
+      return (
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => navigation.navigate("OrderDetail", { orderId: item.order_id, fromSales: true })}
+          activeOpacity={0.8}
+        >
+          <View style={styles.cardHeader}>
+            <Text style={styles.orderId}>#{item.order_id.split("-")[0]}</Text>
+            <Text style={styles.orderDate}>{date}</Text>
+          </View>
+          {firstItem && (
+            <Text style={styles.productName} numberOfLines={1}>
+              {firstItem.product_name}
+              {item.items.length > 1 ? ` +${item.items.length - 1} más` : ""}
+            </Text>
+          )}
+          <View style={styles.cardBody}>
+            <Text style={styles.saleStatus}>{item.status.replace(/_/g, " ")}</Text>
+            <Text style={styles.orderTotal}>${item.total_amount.toFixed(2)}</Text>
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [navigation]
+  );
+
+  const filters = section === "compras" ? PURCHASE_FILTERS : SALE_FILTERS;
+  const selectedStatus = section === "compras" ? purchaseStatus : saleStatus;
+  const setStatus = section === "compras" ? setPurchaseStatus : setSaleStatus;
+
+  const filtersHeader = (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.filtersRow}
+      contentContainerStyle={styles.filters}
+    >
+      {filters.map((f) => {
+        const active = selectedStatus === f.value;
+        return (
+          <TouchableOpacity
+            key={f.label}
+            style={[styles.chip, active && styles.chipActive]}
+            onPress={() => setStatus(f.value)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+
+  const isLoading = section === "compras" ? purchaseLoading : salesLoading;
+  const isRefetching = section === "compras" ? purchaseRefetching : salesRefetching;
+  const refetch = section === "compras" ? refetchPurchases : refetchSales;
+  const items = section === "compras" ? orders : sales;
+  const renderItem = section === "compras" ? renderPurchaseItem : renderSaleItem;
+
   return (
-    <View style={[styles.fill, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Text style={styles.pageTitle}>Mis Órdenes</Text>
+    <View style={styles.fill}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Text style={styles.pageTitle}>Pedidos</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filtersRow}
-        contentContainerStyle={styles.filters}
-      >
-        {FILTERS.map((f) => {
-          const active = selectedStatus === f.value;
-          return (
-            <TouchableOpacity
-              key={f.label}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => setSelectedStatus(f.value)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <View style={styles.sectionTabs}>
+        {(["compras", "ventas"] as Section[]).map((s) => (
+          <TouchableOpacity
+            key={s}
+            style={styles.sectionTab}
+            onPress={() => setSection(s)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.sectionTabLabel, section === s && styles.sectionTabLabelActive]}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </Text>
+            {section === s && <View style={styles.sectionTabIndicator} />}
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.brand[500]} />
-        </View>
-      ) : orders.length === 0 ? (
-        <View style={styles.centered}>
-          <Ionicons name="cube-outline" size={64} color={colors.gray[300]} />
-          <Text style={styles.emptyTitle}>
-            {selectedStatus ? "Sin pedidos en este estado" : "Todavía no tenés pedidos"}
-          </Text>
-          <Text style={styles.emptyText}>
-            {selectedStatus
-              ? "Probá con otro filtro"
-              : "Cuando realices una compra, tus pedidos van a aparecer acá."}
-          </Text>
-        </View>
+        <>
+          {filtersHeader}
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color={colors.brand[500]} />
+          </View>
+        </>
       ) : (
         <FlatList
-          data={orders}
+          data={items}
           keyExtractor={(item) => item.order_id}
           renderItem={renderItem}
-          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.md }]}
+          ListHeaderComponent={filtersHeader}
+          ListEmptyComponent={
+            <View style={styles.centered}>
+              <Ionicons
+                name={section === "compras" ? "cube-outline" : "storefront-outline"}
+                size={64}
+                color={colors.gray[300]}
+              />
+              <Text style={styles.emptyTitle}>
+                {selectedStatus
+                  ? `Sin ${section} en este estado`
+                  : section === "compras"
+                  ? "Todavía no tenés pedidos"
+                  : "Todavía no tenés ventas"}
+              </Text>
+              <Text style={styles.emptyText}>
+                {selectedStatus
+                  ? "Probá con otro filtro"
+                  : section === "compras"
+                  ? "Cuando realices una compra, tus pedidos van a aparecer acá."
+                  : "Cuando alguien compre tus productos, aparecerán acá."}
+              </Text>
+            </View>
+          }
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.md, flexGrow: 1 }]}
           refreshing={isRefetching}
           onRefresh={() => void refetch()}
         />
@@ -126,14 +226,43 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
-    paddingTop: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[200],
   },
   pageTitle: {
-    fontSize: typography.size.xl,
+    fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,
     color: colors.gray[900],
+  },
+  sectionTabs: {
+    flexDirection: "row",
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+    paddingHorizontal: spacing.md,
+  },
+  sectionTab: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    position: "relative",
+  },
+  sectionTabLabel: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[400],
+  },
+  sectionTabLabelActive: {
+    color: colors.brand[500],
+  },
+  sectionTabIndicator: {
+    position: "absolute",
+    bottom: 0,
+    left: "25%",
+    right: "25%",
+    height: 2,
+    backgroundColor: colors.brand[500],
+    borderRadius: 99,
   },
   centered: {
     flex: 1,
@@ -156,6 +285,7 @@ const styles = StyleSheet.create({
   },
   filtersRow: {
     flexGrow: 0,
+    backgroundColor: colors.white,
   },
   filters: {
     paddingHorizontal: spacing.md,
@@ -197,6 +327,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    gap: spacing.xs,
   },
   cardHeader: {
     flexDirection: "row",
@@ -221,6 +352,15 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
     color: colors.brand[600],
+  },
+  saleStatus: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: "#22c55e",
+  },
+  productName: {
+    fontSize: typography.size.sm,
+    color: colors.gray[600],
   },
   orderTotal: {
     fontSize: typography.size.lg,
