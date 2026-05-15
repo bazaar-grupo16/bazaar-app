@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getMyProducts, getProduct, getProducts } from "../api/products";
 import type { MyProductsParams, ProductListParams } from "./types";
-import { useSessionUserId } from "@/shared/auth";
+import { useAuthStore } from "@/shared/auth";
 
 export function useProducts(params: ProductListParams = {}) {
   return useQuery({
@@ -18,11 +18,11 @@ export function useProduct(productId: string) {
 }
 
 export function useMyProducts(params: MyProductsParams = {}) {
-  const userId = useSessionUserId();
+  const isAuthenticated = !!useAuthStore((s) => s.accessToken);
   return useQuery({
     queryKey: ["my-products", params],
     queryFn: () => getMyProducts(params),
-    enabled: !!userId,
+    enabled: isAuthenticated,
   });
 }
 
