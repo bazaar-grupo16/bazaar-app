@@ -11,11 +11,10 @@ interface Props {
   publicationsCount: number;
   salesCount: number;
   purchasesCount: number;
-  onEditPress?: (() => void) | undefined;
   onSettingsPress?: (() => void) | undefined;
 }
 
-export function ProfileHeader({ name, bio, avatarUrl, publicationsCount, salesCount, purchasesCount, onEditPress, onSettingsPress }: Props) {
+export function ProfileHeader({ name, bio, avatarUrl, publicationsCount, salesCount, purchasesCount, onSettingsPress }: Props) {
   const insets = useSafeAreaInsets();
 
   const stats: Stat[] = [
@@ -33,14 +32,9 @@ export function ProfileHeader({ name, bio, avatarUrl, publicationsCount, salesCo
       {/* Título + botones */}
       <View style={styles.topRow}>
         <Text style={styles.title}>Mi perfil</Text>
-        <View style={styles.buttons}>
-          <TouchableOpacity style={styles.iconBtn} onPress={onEditPress}>
-            <Ionicons name="create-outline" size={22} color={colors.gray[700]} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={onSettingsPress}>
-            <Ionicons name="settings-outline" size={22} color={colors.gray[700]} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.iconBtn} onPress={onSettingsPress}>
+          <Ionicons name="settings-outline" size={22} color={colors.gray[700]} />
+        </TouchableOpacity>
       </View>
 
       {/* Avatar + info */}

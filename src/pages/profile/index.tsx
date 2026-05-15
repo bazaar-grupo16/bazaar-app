@@ -122,7 +122,6 @@ export function ProfilePage() {
         bio={userProfile?.description ?? null}
         avatarUrl={userProfile?.profile_picture_url ?? null}
         publicationsCount={activeListings.length}
-        onEditPress={() => setEditModalOpen(true)}
         salesCount={salesCount}
         purchasesCount={purchasesCount}
         onSettingsPress={() => setSettingsOpen(true)}
@@ -169,6 +168,7 @@ export function ProfilePage() {
         visible={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         onSignOut={handleSignOut}
+        onEditProfile={() => setEditModalOpen(true)}
       />
       <EditProfileModal
         visible={editModalOpen}
