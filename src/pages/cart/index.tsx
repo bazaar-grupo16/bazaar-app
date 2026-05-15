@@ -1,6 +1,8 @@
 import { useCallback } from "react";
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useCart,
@@ -11,13 +13,17 @@ import {
   type CartItem,
 } from "@/entities/cart";
 import { Button } from "@/shared/ui";
-import { colors, spacing, typography } from "@/shared/styles";
+import { colors, spacing, typography, radius } from "@/shared/styles";
 import { CartItemCard } from "./components/CartItemCard";
 import { CartSummary } from "./components/CartSummary";
 import { useCheckoutStore } from "@/entities/order/model/store";
+import { useAuthStore } from "@/shared/auth";
+import type { RootStackParamList } from "@/navigation";
 
 export function CartPage() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const isGuest = !useAuthStore((s) => s.accessToken);
   const { data, error, isLoading, isRefetching, refetch } = useCart();
   const removeMutation = useRemoveCartItem();
   const clearMutation = useClearCart();
@@ -61,6 +67,29 @@ export function CartPage() {
       <Text style={styles.title}>Mi Carrito</Text>
     </View>
   );
+
+  // --- Guest ---
+  if (isGuest) {
+    return (
+      <View style={styles.fill}>
+        {header}
+        <View style={styles.centered}>
+          <Ionicons name="cart-outline" size={64} color={colors.gray[300]} />
+          <Text style={styles.emptyTitle}>Iniciá sesión para ver tu carrito</Text>
+          <Text style={styles.helperText}>
+            Con tu cuenta podés agregar productos y realizar compras.
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => navigation.navigate("Login" as any)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   // --- Loading ---
   if (isLoading) {
@@ -182,5 +211,17 @@ const styles = StyleSheet.create({
     fontSize: typography.size.lg,
     fontWeight: typography.weight.semibold,
     color: colors.gray[700],
+  },
+  loginButton: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.brand[500],
+    borderRadius: radius.md,
+  },
+  loginButtonText: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
   },
 });

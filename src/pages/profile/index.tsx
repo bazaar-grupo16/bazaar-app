@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ScrollView, View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,7 +8,7 @@ import type { RootStackParamList } from "@/navigation";
 import { clearAuthSession, useAuthStore } from "@/shared/auth";
 import { useMyProducts } from "@/entities/product";
 import { useOrdersHistory, useSalesHistory } from "@/entities/order";
-import { colors, typography, spacing } from "@/shared/styles";
+import { colors, typography, spacing, radius } from "@/shared/styles";
 import type { Tab, PublicationsSubTab } from "./types";
 
 import { getMyProfile } from "@/entities/profile/api/profile";
@@ -30,6 +31,7 @@ const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: stri
 
 export function ProfilePage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Tabs">>();
+  const insets = useSafeAreaInsets();
   const isGuest = !useAuthStore((state) => state.accessToken);
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
@@ -83,19 +85,24 @@ export function ProfilePage() {
 
   if (isGuest) {
     return (
-      <View style={styles.guestContainer}>
-        <Ionicons name="person-circle-outline" size={100} color={colors.gray[300]} />
-        <Text style={styles.guestTitle}>Ingresá a tu cuenta</Text>
-        <Text style={styles.guestSubtitle}>
-          Para ver tu perfil, gestionar tus publicaciones y revisar tus ventas, tenés que iniciar sesión.
-        </Text>
-        <TouchableOpacity 
-          style={styles.loginButton} 
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate("Login" as any)} 
-        >
-          <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-        </TouchableOpacity>
+      <View style={styles.fill}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Text style={styles.pageTitle}>Perfil</Text>
+        </View>
+        <View style={styles.guestContainer}>
+          <Ionicons name="person-circle-outline" size={64} color={colors.gray[300]} />
+          <Text style={styles.guestTitle}>Iniciá sesión para ver tu perfil</Text>
+          <Text style={styles.guestText}>
+            Con tu cuenta podés gestionar tus publicaciones y revisar tus ventas.
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("Login" as any)}
+          >
+            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -204,38 +211,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
   },
-  guestContainer: {
+  fill: {
     flex: 1,
     backgroundColor: colors.gray[50],
-    justifyContent: "center",
+  },
+  header: {
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  pageTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+  },
+  guestContainer: {
+    flex: 1,
     alignItems: "center",
-    paddingHorizontal: spacing.xl,
+    justifyContent: "center",
+    padding: spacing.xl,
+    gap: spacing.md,
   },
   guestTitle: {
-    fontSize: typography.size.xl,
-    fontWeight: "bold",
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semibold,
     color: colors.gray[900],
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
+    textAlign: "center",
   },
-  guestSubtitle: {
+  guestText: {
     fontSize: typography.size.md,
     color: colors.gray[500],
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: spacing.xl,
   },
   loginButton: {
-    backgroundColor: colors.brand[500],
-    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.xl,
-    borderRadius: 8,
-    width: "100%",
-    alignItems: "center",
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.brand[500],
+    borderRadius: radius.md,
   },
   loginButtonText: {
-    color: colors.white,
     fontSize: typography.size.md,
-    fontWeight: "bold",
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
   },
 });

@@ -1,7 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HomePage } from "@/pages/home";
 import { OrdersPage } from "@/pages/orders";
 import { PublishPage } from "@/pages/publish";
@@ -20,7 +19,6 @@ export type TabsParamList = {
 const Tab = createBottomTabNavigator<TabsParamList>();
 
 function PublishTabButton({ onPress }: { onPress: (() => void) | undefined }) {
-  const { bottom } = useSafeAreaInsets();
   return (
     <TouchableOpacity
       style={[styles.publishWrapper]}

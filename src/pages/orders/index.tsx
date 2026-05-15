@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
 import { useOrdersHistory, useSalesHistory, type OrderResponse, type OrderStatus } from "@/entities/order";
 import { colors, spacing, typography, radius } from "@/shared/styles";
+import { useAuthStore } from "@/shared/auth";
 
 type Section = "compras" | "ventas";
 type FilterOption = { label: string; value: OrderStatus | null };
@@ -36,7 +37,32 @@ const SALE_FILTERS: FilterOption[] = [
 export function OrdersPage() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const isGuest = !useAuthStore((s) => s.accessToken);
   const [section, setSection] = useState<Section>("compras");
+
+  if (isGuest) {
+    return (
+      <View style={styles.fill}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Text style={styles.pageTitle}>Pedidos</Text>
+        </View>
+        <View style={styles.guestContainer}>
+          <Ionicons name="cube-outline" size={64} color={colors.gray[300]} />
+          <Text style={styles.guestTitle}>Iniciá sesión para ver tus pedidos</Text>
+          <Text style={styles.guestText}>
+            Accedé a tu historial de compras y ventas con tu cuenta.
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => navigation.navigate("Login" as any)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
   const [purchaseStatus, setPurchaseStatus] = useState<OrderStatus | null>(null);
   const [saleStatus, setSaleStatus] = useState<OrderStatus | null>(null);
 
@@ -366,5 +392,36 @@ const styles = StyleSheet.create({
     fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,
     color: colors.gray[900],
+  },
+  guestContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  guestTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[900],
+    textAlign: "center",
+  },
+  guestText: {
+    fontSize: typography.size.md,
+    color: colors.gray[500],
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  loginButton: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.brand[500],
+    borderRadius: radius.md,
+  },
+  loginButtonText: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
   },
 });

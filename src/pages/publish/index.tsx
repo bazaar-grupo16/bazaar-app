@@ -22,6 +22,7 @@ import { useCreateProduct } from "@/entities/product";
 import { PRODUCT_CATEGORIES } from "@/shared/config/categories";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import type { RootStackParamList } from "@/navigation";
+import { useAuthStore } from "@/shared/auth";
 
 const MAX_IMAGES = 5;
 const MAX_FILE_MB = 10;
@@ -100,6 +101,31 @@ function SectionHeader({ label }: { label: string }) {
 export function PublishPage() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const isGuest = !useAuthStore((s) => s.accessToken);
+
+  if (isGuest) {
+    return (
+      <View style={styles.fill}>
+        <View style={[styles.pageHeader, { paddingTop: insets.top + 12 }]}>
+          <Text style={styles.pageTitle}>Publicar</Text>
+        </View>
+        <View style={styles.guestContainer}>
+          <Ionicons name="storefront-outline" size={64} color={colors.gray[300]} />
+          <Text style={styles.guestTitle}>Iniciá sesión para publicar</Text>
+          <Text style={styles.guestText}>
+            Con tu cuenta podés publicar productos y empezar a vender.
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => navigation.navigate("Login" as any)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
   const { mutateAsync, isPending } = useCreateProduct();
 
   const [images, setImages] = useState<PickedImage[]>([]);
@@ -692,5 +718,52 @@ const styles = StyleSheet.create({
     fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
     color: colors.brand[500],
+  },
+  fill: {
+    flex: 1,
+    backgroundColor: colors.gray[50],
+  },
+  pageHeader: {
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[200],
+  },
+  pageTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.gray[900],
+  },
+  guestContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  guestTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semibold,
+    color: colors.gray[900],
+    textAlign: "center",
+  },
+  guestText: {
+    fontSize: typography.size.md,
+    color: colors.gray[500],
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  loginButton: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.brand[500],
+    borderRadius: radius.md,
+  },
+  loginButtonText: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
   },
 });
