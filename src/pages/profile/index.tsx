@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { ScrollView, View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,7 +30,6 @@ const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: stri
 
 export function ProfilePage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Tabs">>();
-  const insets = useSafeAreaInsets();
   const isGuest = !useAuthStore((state) => state.accessToken);
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
@@ -85,24 +83,19 @@ export function ProfilePage() {
 
   if (isGuest) {
     return (
-      <View style={styles.fill}>
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <Text style={styles.pageTitle}>Perfil</Text>
-        </View>
-        <View style={styles.guestContainer}>
-          <Ionicons name="person-circle-outline" size={64} color={colors.gray[300]} />
-          <Text style={styles.guestTitle}>Iniciá sesión para ver tu perfil</Text>
-          <Text style={styles.guestText}>
-            Con tu cuenta podés gestionar tus publicaciones y revisar tus ventas.
-          </Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate("Login" as any)}
-          >
-            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.guestContainer}>
+        <Ionicons name="person-circle-outline" size={64} color={colors.gray[300]} />
+        <Text style={styles.guestTitle}>Iniciá sesión para ver tu perfil</Text>
+        <Text style={styles.guestText}>
+          Con tu cuenta podés gestionar tus publicaciones y revisar tus ventas.
+        </Text>
+        <TouchableOpacity
+          style={styles.loginButton}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate("Login" as any)}
+        >
+          <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -210,22 +203,6 @@ const styles = StyleSheet.create({
   gridArea: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-  },
-  fill: {
-    flex: 1,
-    backgroundColor: colors.gray[50],
-  },
-  header: {
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[200],
-  },
-  pageTitle: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
-    color: colors.gray[900],
   },
   guestContainer: {
     flex: 1,

@@ -242,7 +242,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Hero: image carousel with overlaid controls */}
         <View style={styles.hero}>
