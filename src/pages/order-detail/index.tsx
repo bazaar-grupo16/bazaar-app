@@ -221,20 +221,16 @@ export function OrderDetailPage() {
         <View style={styles.section}>
           <Text style={styles.orderId}>Orden #{order.order_id.split("-")[0]}</Text>
           <Text style={styles.orderDate}>{date}</Text>
-          <View style={styles.summaryBadgeRow}>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) + "20" }]}>
-              <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
-                Pago: {order.status.replace(/_/g, " ")}
-              </Text>
-            </View>
-            {order.aggregated_status && (
-              <View style={[styles.aggregatedStatusBadge, { backgroundColor: getStatusColor(order.aggregated_status) + "20" }]}>
-                <Text style={[styles.aggregatedStatusText, { color: getStatusColor(order.aggregated_status) }]}>
-                  Envío: {order.aggregated_status.replace(/_/g, " ")}
+          {(() => {
+            const displayStatus = order.aggregated_status ?? order.status;
+            return (
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(displayStatus) + "20" }]}>
+                <Text style={[styles.statusText, { color: getStatusColor(displayStatus) }]}>
+                  {displayStatus.replace(/_/g, " ")}
                 </Text>
               </View>
-            )}
-          </View>
+            );
+          })()}
         </View>
 
         {fromSales && (
