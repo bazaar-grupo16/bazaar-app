@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 import { linking, RootNavigator } from "@/navigation";
 import { bootstrapAuthSession } from "@/shared/auth";
+import { navigationRef } from "@/shared/navigation";
 
 export default function App() {
   const [queryClient] = useState(() => new QueryClient());
@@ -42,7 +43,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <NavigationContainer linking={linking}>
+        <NavigationContainer ref={navigationRef} linking={linking}>
           <StatusBar style="auto" />
           <RootNavigator />
         </NavigationContainer>

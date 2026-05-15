@@ -1,6 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 
-import { refreshAuthSession, useAuthStore } from "@/shared/auth";
+import { clearAuthSession, refreshAuthSession, useAuthStore } from "@/shared/auth";
+import { navigationRef } from "@/shared/navigation";
 import { getApiBaseUrl, protectedApi, publicApi } from "./http";
 
 export class ApiError extends Error {
@@ -63,6 +64,8 @@ protectedApi.interceptors.response.use(
     const originalRequest = error.config as RetryableRequestConfig;
 
     if (originalRequest._retry) {
+      useAuthStore.getState().setPendingRoute(navigationRef.getCurrentRoute()?.name ?? null);
+      await clearAuthSession();
       throw error;
     }
 
@@ -71,6 +74,8 @@ protectedApi.interceptors.response.use(
     const refreshedSession = await refreshAuthSession();
 
     if (!refreshedSession) {
+      useAuthStore.getState().setPendingRoute(navigationRef.getCurrentRoute()?.name ?? null);
+      await clearAuthSession();
       throw error;
     }
 

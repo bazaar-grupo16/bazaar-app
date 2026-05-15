@@ -11,15 +11,19 @@ const REFRESH_TOKEN_KEY = "bazaar.refreshToken";
 interface AuthState {
   accessToken: string | null;
   isHydrating: boolean;
+  pendingRoute: string | null;
   setAccessToken: (token: string | null) => void;
   setHydrating: (value: boolean) => void;
+  setPendingRoute: (route: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   isHydrating: true,
+  pendingRoute: null,
   setAccessToken: (token) => set({ accessToken: token }),
   setHydrating: (value) => set({ isHydrating: value }),
+  setPendingRoute: (route) => set({ pendingRoute: route }),
 }));
 
 export function useSessionUserId(): string | null {

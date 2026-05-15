@@ -9,8 +9,10 @@ import { OrderResultPage } from "@/pages/order-result";
 import { OrderDetailPage } from "@/pages/order-detail";
 import { TabsNavigator } from "./TabsNavigator";
 import type { LinkingOptions } from "@react-navigation/native";
+import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useAuthStore } from "@/shared/auth";
+import { navigationRef } from "@/shared/navigation";
 import { colors } from "@/shared/styles";
 
 export type RootStackParamList = {
@@ -39,9 +41,23 @@ export const linking: LinkingOptions<RootStackParamList> = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const TAB_NAMES = ["Home", "Orders", "Publish", "Cart", "Profile"];
+
 export function RootNavigator() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrating = useAuthStore((state) => state.isHydrating);
+  const pendingRoute = useAuthStore((state) => state.pendingRoute);
+
+  // After login, navigate to wherever the user was trying to go.
+  useEffect(() => {
+    if (!accessToken || isHydrating || !pendingRoute) return;
+    useAuthStore.getState().setPendingRoute(null);
+    setTimeout(() => {
+      if (TAB_NAMES.includes(pendingRoute)) {
+        navigationRef.navigate("Tabs", { screen: pendingRoute });
+      }
+    }, 0);
+  }, [accessToken, isHydrating, pendingRoute]);
 
   if (isHydrating) {
     return (
@@ -51,11 +67,9 @@ export function RootNavigator() {
     );
   }
 
-  return (
-    // Render different navigator trees depending on auth state so
-    // the app responds immediately when `accessToken` changes.
-    accessToken ? (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+  if (accessToken) {
+    return (
+      <Stack.Navigator key="auth" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Tabs" component={TabsNavigator} />
         <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
         <Stack.Screen name="EditProduct" component={EditProductPage} />
@@ -65,13 +79,22 @@ export function RootNavigator() {
         <Stack.Screen name="OrderResult" component={OrderResultPage} />
         <Stack.Screen name="OrderDetail" component={OrderDetailPage} />
       </Stack.Navigator>
-    ) : (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Tabs" component={TabsNavigator} />
-        <Stack.Screen name="Login" component={LoginPage} />
-        <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
-      </Stack.Navigator>
-    )
+    );
+  }
+
+  // pendingRoute set means the user hit a protected screen and was redirected —
+  // show Login first. Without it, show Tabs so guests can browse freely.
+  return pendingRoute ? (
+    <Stack.Navigator key="unauth-login" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginPage} />
+      <Stack.Screen name="Tabs" component={TabsNavigator} />
+    </Stack.Navigator>
+  ) : (
+    <Stack.Navigator key="unauth-guest" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Tabs" component={TabsNavigator} />
+      <Stack.Screen name="Login" component={LoginPage} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailPage} />
+    </Stack.Navigator>
   );
 }
 
