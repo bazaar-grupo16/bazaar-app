@@ -9,6 +9,7 @@ export function useCreateProduct() {
     mutationFn: (formData: FormData) => createProduct(formData),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["my-products"] });
     },
   });
 }
