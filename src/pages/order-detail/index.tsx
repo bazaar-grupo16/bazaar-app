@@ -4,7 +4,7 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import type { RootStackParamList } from "@/navigation";
-import { useOrder, useSaleDetail, useCancelOrder, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus, getStatusColor } from "@/entities/order";
+import { useOrder, useSaleDetail, useCancelOrder, useCancelOrderItem, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus, getStatusColor } from "@/entities/order";
 import type { OrderItemStatus, OrderStatus } from "@/entities/order";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Button } from "@/shared/ui";
@@ -51,7 +51,11 @@ export function OrderDetailPage() {
   const sellerQuery = useSaleDetail(fromSales ? orderId : undefined);
   const { data: order, isLoading } = fromSales ? sellerQuery : buyerQuery;
   const { mutate: cancelOrderMutate, isPending: isCancelling } = useCancelOrder(orderId);
-  const { mutate: cancelItem, isPending: isCancellingItem, variables: cancellingItemId } = useCancelSaleItem(orderId);
+  const buyerCancelItemMutation = useCancelOrderItem(orderId);
+  const sellerCancelItemMutation = useCancelSaleItem(orderId);
+  const { mutate: cancelItem, isPending: isCancellingItem, variables: cancellingItemId } = fromSales
+    ? sellerCancelItemMutation
+    : buyerCancelItemMutation;
   const { mutate: confirmDelivery, isPending: isConfirmingDelivery, variables: confirmingItemId } = useConfirmItemDelivery(orderId);
   const { mutate: updateSaleItemStatus, isPending: isUpdatingSaleItemStatus, variables: updatingSaleItem } = useUpdateSaleItemStatus(orderId);
 
@@ -66,6 +70,18 @@ export function OrderDetailPage() {
         { text: "Sí, cancelar", style: "destructive", onPress: () => cancelOrderMutate() },
       ],
     );
+  };
+
+  const handleGoToPayment = () => {
+    if (!order?.init_point) {
+      Alert.alert(
+        "Pago no disponible",
+        "La orden no tiene un enlace de pago disponible en este momento."
+      );
+      return;
+    }
+
+    navigation.replace("Payment", { orderId: order.order_id, initPoint: order.init_point });
   };
 
   const handleCancelItem = (itemId: string, itemName: string) => {
@@ -265,6 +281,7 @@ export function OrderDetailPage() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{fromSales ? "Items vendidos" : "Items"}</Text>
           {order.items.map((item) => {
+            const canCancelBuyerItem = !fromSales && SELLER_ITEM_CANCELLABLE.includes(item.status);
             const canCancelItem = fromSales && SELLER_ITEM_CANCELLABLE.includes(item.status);
             const canBuyerConfirmItem = !fromSales && item.status === "ENVIADO";
             const sellerItemAction = fromSales ? SELLER_ITEM_NEXT_STATUS[item.status] : null;
@@ -287,6 +304,19 @@ export function OrderDetailPage() {
                   </View>
                   <View style={styles.itemRight}>
                     <Text style={styles.itemPrice}>${(item.unit_price * item.quantity).toFixed(2)}</Text>
+                    {canCancelBuyerItem && (
+                      <TouchableOpacity
+                        onPress={() => handleCancelItem(item.id, item.product_name)}
+                        disabled={isCancellingItem}
+                        style={styles.cancelItemButton}
+                      >
+                        {isThisItemCancelling ? (
+                          <ActivityIndicator size="small" color={colors.gray[400]} />
+                        ) : (
+                          <Ionicons name="trash-outline" size={18} color={colors.gray[400]} />
+                        )}
+                      </TouchableOpacity>
+                    )}
                     {canCancelItem && (
                       <TouchableOpacity
                         onPress={() => handleCancelItem(item.id, item.product_name)}
@@ -411,6 +441,13 @@ export function OrderDetailPage() {
               </View>
             )}
           </View>
+        )}
+
+        {!fromSales && order.status === "PENDIENTE_DE_PAGO" && order.init_point && (
+          <TouchableOpacity style={styles.advanceButton} onPress={handleGoToPayment} activeOpacity={0.8}>
+            <Ionicons name="card-outline" size={20} color={colors.white} />
+            <Text style={styles.advanceButtonText}>Ir a Pagar</Text>
+          </TouchableOpacity>
         )}
 
         {!fromSales && BUYER_CANCELLABLE.includes(order.status) && (

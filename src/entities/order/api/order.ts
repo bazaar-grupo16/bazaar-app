@@ -116,6 +116,13 @@ export function updateSaleItemStatus(orderId: string, itemId: string, status: st
   );
 }
 
+export function cancelOrderItem(orderId: string, itemId: string) {
+  return wrapRequest<OrderItemResponse>(
+    protectedApi.post(`/orders/${orderId}/items/${itemId}/cancel`, {}),
+    `POST /orders/${orderId}/items/${itemId}/cancel`,
+  );
+}
+
 export function cancelSaleItem(orderId: string, itemId: string) {
   return wrapRequest<OrderItemResponse>(
     protectedApi.post(`/orders/sales/${orderId}/items/${itemId}/cancel`, {}),
