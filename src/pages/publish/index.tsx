@@ -102,6 +102,19 @@ export function PublishPage() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const isGuest = !useAuthStore((s) => s.accessToken);
+  const { mutateAsync, isPending } = useCreateProduct();
+
+  const [images, setImages] = useState<PickedImage[]>([]);
+  const [form, setForm] = useState<FormState>({
+    title: "",
+    description: "",
+    price: "",
+    stock: "",
+    category: "",
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
 
   if (isGuest) {
     return (
@@ -126,19 +139,6 @@ export function PublishPage() {
       </View>
     );
   }
-  const { mutateAsync, isPending } = useCreateProduct();
-
-  const [images, setImages] = useState<PickedImage[]>([]);
-  const [form, setForm] = useState<FormState>({
-    title: "",
-    description: "",
-    price: "",
-    stock: "",
-    category: "",
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
 
   function setField(key: keyof FormState) {
     return (value: string) => {

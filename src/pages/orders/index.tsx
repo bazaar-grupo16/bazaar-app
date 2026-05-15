@@ -39,6 +39,22 @@ export function OrdersPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isGuest = !useAuthStore((s) => s.accessToken);
   const [section, setSection] = useState<Section>("compras");
+  const [purchaseStatus, setPurchaseStatus] = useState<OrderStatus | null>(null);
+  const [saleStatus, setSaleStatus] = useState<OrderStatus | null>(null);
+
+  const {
+    data: purchaseData,
+    isLoading: purchaseLoading,
+    isRefetching: purchaseRefetching,
+    refetch: refetchPurchases,
+  } = useOrdersHistory(1, 50, purchaseStatus ?? undefined);
+
+  const {
+    data: salesData,
+    isLoading: salesLoading,
+    isRefetching: salesRefetching,
+    refetch: refetchSales,
+  } = useSalesHistory(1, 50, saleStatus ?? undefined);
 
   if (isGuest) {
     return (
@@ -63,22 +79,6 @@ export function OrdersPage() {
       </View>
     );
   }
-  const [purchaseStatus, setPurchaseStatus] = useState<OrderStatus | null>(null);
-  const [saleStatus, setSaleStatus] = useState<OrderStatus | null>(null);
-
-  const {
-    data: purchaseData,
-    isLoading: purchaseLoading,
-    isRefetching: purchaseRefetching,
-    refetch: refetchPurchases,
-  } = useOrdersHistory(1, 50, purchaseStatus ?? undefined);
-
-  const {
-    data: salesData,
-    isLoading: salesLoading,
-    isRefetching: salesRefetching,
-    refetch: refetchSales,
-  } = useSalesHistory(1, 50, saleStatus ?? undefined);
 
   const orders = purchaseData?.orders ?? [];
   const sales = salesData?.orders ?? [];
