@@ -6,11 +6,12 @@ export const wishlistKeys = {
   items: () => [...wishlistKeys.all, "items"] as const,
 };
 
-export function useWishlist() {
+export function useWishlist(enabled = true) {
   return useQuery({
     queryKey: wishlistKeys.items(),
     queryFn: getWishlist,
     staleTime: 30_000,
     retry: 1,
+    enabled,
   });
 }

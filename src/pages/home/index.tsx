@@ -107,7 +107,7 @@ export function HomePage() {
 
   // Favorites (wishlist API)
   const userId = useSessionUserId();
-  const { data: wishlistData } = useWishlist();
+  const { data: wishlistData } = useWishlist(!isGuest);
   const wishlistIds = new Set((wishlistData?.items ?? []).map((i) => i.product_id));
   const addToWishlist = useAddToWishlist();
   const removeFromWishlist = useRemoveFromWishlist();

@@ -132,12 +132,12 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const [quantity, setQuantity] = useState(1);
   const [sellerModalVisible, setSellerModalVisible] = useState(false);
 
+  const userId = useSessionUserId();
   const { data: cartData } = useCart();
-  const { data: wishlistData } = useWishlist();
+  const { data: wishlistData } = useWishlist(!!userId);
   const isWishlisted = wishlistData?.items.some((i) => i.product_id === product.id) ?? false;
   const addToWishlist = useAddToWishlist();
   const removeFromWishlist = useRemoveFromWishlist();
-  const userId = useSessionUserId();
   const setPendingWishlist = usePendingActionStore((s) => s.setPendingWishlist);
 
   const toggleWishlist = () => {
