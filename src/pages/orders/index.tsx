@@ -5,12 +5,16 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { useOrdersHistory, useSalesHistory, type OrderResponse, type OrderStatus, type OrderItemResponse } from "@/entities/order";
+import { useOrdersHistory, useSalesHistory, getStatusColor, type OrderResponse, type OrderStatus, type OrderItemResponse } from "@/entities/order";
 import { colors, spacing, typography, radius } from "@/shared/styles";
 import { useAuthStore } from "@/shared/auth";
 
 type Section = "compras" | "ventas";
 type FilterOption = { label: string; value: OrderStatus | null };
+
+const TERMINAL_ORDER_STATUSES: OrderStatus[] = [
+  "CANCELADA", "PAGO_RECHAZADO", "REEMBOLSO_EN_PROCESO", "REEMBOLSO_PROCESADO",
+];
 type SaleItemCard = {
   order: OrderResponse;
   item: OrderItemResponse;
@@ -82,7 +86,9 @@ export function OrdersPage() {
             <Text style={styles.orderDate}>{date}</Text>
           </View>
           <View style={styles.cardBody}>
-            <Text style={styles.orderStatus}>{(item.aggregated_status ?? item.status).replace(/_/g, " ")}</Text>
+            <Text style={[styles.orderStatus, { color: getStatusColor(item.aggregated_status ?? item.status) }]}>
+              {(item.aggregated_status ?? item.status).replace(/_/g, " ")}
+            </Text>
             <Text style={styles.orderTotal}>${item.total_amount.toFixed(2)}</Text>
           </View>
         </TouchableOpacity>
@@ -98,6 +104,9 @@ export function OrdersPage() {
         month: "short",
         year: "numeric",
       });
+      const displayStatus = TERMINAL_ORDER_STATUSES.includes(item.order.status)
+        ? item.order.status
+        : item.item.status;
       return (
         <TouchableOpacity
           style={styles.card}
@@ -113,7 +122,9 @@ export function OrdersPage() {
               <Text style={styles.productName} numberOfLines={1}>
                 {item.item.product_name}
               </Text>
-              <Text style={styles.saleStatus}>{item.item.status.replace(/_/g, " ")}</Text>
+              <Text style={[styles.saleStatus, { color: getStatusColor(displayStatus) }]}>
+                {displayStatus.replace(/_/g, " ")}
+              </Text>
             </View>
             <Text style={styles.orderTotal}>${(item.item.unit_price * item.item.quantity).toFixed(2)}</Text>
           </View>
@@ -395,12 +406,12 @@ const styles = StyleSheet.create({
   orderStatus: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-    color: colors.brand[600],
+    color: colors.gray[600],
   },
   saleStatus: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-    color: "#22c55e",
+    color: colors.gray[600],
   },
   productName: {
     fontSize: typography.size.sm,

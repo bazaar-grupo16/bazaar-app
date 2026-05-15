@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpa
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useSalesHistory } from "@/entities/order";
+import { useSalesHistory, getStatusColor } from "@/entities/order";
 import type { OrderResponse, OrderStatus } from "@/entities/order";
 import type { RootStackParamList } from "@/navigation";
 import { colors, spacing, typography, radius } from "@/shared/styles";
@@ -129,7 +129,7 @@ function SaleCard({ sale }: { sale: OrderResponse }) {
         </Text>
       )}
       <View style={styles.cardFooter}>
-        <Text style={styles.orderStatus}>{sale.status.replace(/_/g, " ")}</Text>
+        <Text style={[styles.orderStatus, { color: getStatusColor(sale.status) }]}>{sale.status.replace(/_/g, " ")}</Text>
         <Text style={styles.orderTotal}>${sale.total_amount.toFixed(2)}</Text>
       </View>
     </TouchableOpacity>
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   orderStatus: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-    color: "#22c55e",
+    color: colors.gray[600],
   },
   orderTotal: {
     fontSize: typography.size.lg,

@@ -20,16 +20,10 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSignOut: () => void;
+  onEditProfile: () => void;
 }
 
-const SETTINGS_ITEMS: Array<{ icon: keyof typeof Ionicons.glyphMap; label: string }> = [
-  { icon: "person-outline",       label: "Datos de cuenta" },
-  { icon: "shield-checkmark-outline", label: "Privacidad y seguridad" },
-  { icon: "notifications-outline", label: "Notificaciones" },
-  { icon: "help-circle-outline",  label: "Ayuda y soporte" },
-];
-
-export function SettingsPanel({ visible, onClose, onSignOut }: Props) {
+export function SettingsPanel({ visible, onClose, onSignOut, onEditProfile }: Props) {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(PANEL_W)).current;
 
@@ -91,24 +85,46 @@ export function SettingsPanel({ visible, onClose, onSignOut }: Props) {
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Settings items */}
             <View style={styles.section}>
-              {SETTINGS_ITEMS.map((item, index) => (
-                <TouchableOpacity
-                  key={item.label}
-                  style={[
-                    styles.row,
-                    index < SETTINGS_ITEMS.length - 1 && styles.rowBorder,
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.rowLeft}>
-                    <View style={styles.rowIcon}>
-                      <Ionicons name={item.icon} size={18} color={colors.gray[500]} />
-                    </View>
-                    <Text style={styles.rowLabel}>{item.label}</Text>
+              <TouchableOpacity
+                style={[styles.row, styles.rowBorder]}
+                activeOpacity={0.7}
+                onPress={() => { handleClose(); setTimeout(onEditProfile, 220); }}
+              >
+                <View style={styles.rowLeft}>
+                  <View style={styles.rowIcon}>
+                    <Ionicons name="person-outline" size={18} color={colors.gray[500]} />
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.gray[300]} />
-                </TouchableOpacity>
-              ))}
+                  <Text style={styles.rowLabel}>Datos de cuenta</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.gray[300]} />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.row, styles.rowBorder]} activeOpacity={0.7}>
+                <View style={styles.rowLeft}>
+                  <View style={styles.rowIcon}>
+                    <Ionicons name="shield-checkmark-outline" size={18} color={colors.gray[500]} />
+                  </View>
+                  <Text style={styles.rowLabel}>Privacidad y seguridad</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.gray[300]} />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.row, styles.rowBorder]} activeOpacity={0.7}>
+                <View style={styles.rowLeft}>
+                  <View style={styles.rowIcon}>
+                    <Ionicons name="notifications-outline" size={18} color={colors.gray[500]} />
+                  </View>
+                  <Text style={styles.rowLabel}>Notificaciones</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.gray[300]} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+                <View style={styles.rowLeft}>
+                  <View style={styles.rowIcon}>
+                    <Ionicons name="help-circle-outline" size={18} color={colors.gray[500]} />
+                  </View>
+                  <Text style={styles.rowLabel}>Ayuda y soporte</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.gray[300]} />
+              </TouchableOpacity>
             </View>
 
             {/* Sign out */}
