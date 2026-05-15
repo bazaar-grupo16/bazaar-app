@@ -3,13 +3,9 @@ import { normalizeTokenResponse } from "@/shared/auth";
 import type { LoginCredentials, RegisterCredentials, AuthResponse } from "../model";
 
 export async function loginUser(credentials: LoginCredentials): Promise<AuthResponse> {
-  console.log("[auth.ts] loginUser called with email:", credentials.email);
   try {
     const rawData = await publicApiPost<Record<string, unknown>>("/login", credentials);
-    console.log("[auth.ts] loginUser raw response:", rawData);
-    console.log("[auth.ts] loginUser response keys:", Object.keys(rawData));
     const data = normalizeTokenResponse(rawData);
-    console.log("[auth.ts] loginUser successful, response type:", data.token_type);
     return data;
   } catch (error) {
     console.error("[auth.ts] loginUser failed:", error);
