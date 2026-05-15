@@ -102,7 +102,6 @@ export function ProfilePage() {
 
   const handleSignOut = async () => {
     await clearAuthSession();
-    navigation.replace("Login");
   };
 
   const handlePreview = (productId: string) => {

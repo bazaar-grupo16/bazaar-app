@@ -56,30 +56,6 @@ export function OrdersPage() {
     refetch: refetchSales,
   } = useSalesHistory(1, 50, saleStatus ?? undefined);
 
-  if (isGuest) {
-    return (
-      <View style={styles.fill}>
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-          <Text style={styles.pageTitle}>Pedidos</Text>
-        </View>
-        <View style={styles.guestContainer}>
-          <Ionicons name="cube-outline" size={64} color={colors.gray[300]} />
-          <Text style={styles.guestTitle}>Iniciá sesión para ver tus pedidos</Text>
-          <Text style={styles.guestText}>
-            Accedé a tu historial de compras y ventas con tu cuenta.
-          </Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => navigation.navigate("Login" as any)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   const orders = purchaseData?.orders ?? [];
   const sales = salesData?.orders ?? [];
 
@@ -142,6 +118,30 @@ export function OrdersPage() {
     },
     [navigation]
   );
+
+  if (isGuest) {
+    return (
+      <View style={styles.fill}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+          <Text style={styles.pageTitle}>Pedidos</Text>
+        </View>
+        <View style={styles.guestContainer}>
+          <Ionicons name="cube-outline" size={64} color={colors.gray[300]} />
+          <Text style={styles.guestTitle}>Iniciá sesión para ver tus pedidos</Text>
+          <Text style={styles.guestText}>
+            Accedé a tu historial de compras y ventas con tu cuenta.
+          </Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => navigation.navigate("Login" as any)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const filters = section === "compras" ? PURCHASE_FILTERS : SALE_FILTERS;
   const selectedStatus = section === "compras" ? purchaseStatus : saleStatus;
