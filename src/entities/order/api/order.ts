@@ -83,8 +83,9 @@ export function getSaleDetail(orderId: string) {
 }
 
 export function updateOrderStatus(orderId: string, status: string, trackingCode?: string) {
+  const payload = trackingCode ? { status, tracking_code: trackingCode } : { status };
   return wrapRequest<OrderResponse>(
-    protectedApi.patch(`/orders/${orderId}/status`, { status, ...(trackingCode ? { tracking_code: trackingCode } : {}) }),
+    protectedApi.patch(`/orders/${orderId}/status`, payload),
     `PATCH /orders/${orderId}/status`,
   );
 }
@@ -102,22 +103,23 @@ export function getSalesHistory(page: number = 1, size: number = 50, status?: st
 
 export function cancelOrder(orderId: string) {
   return wrapRequest<OrderResponse>(
-    protectedApi.patch(`/orders/${orderId}/status`, { status: "CANCELADA" }),
-    `PATCH /orders/${orderId}/status (CANCELADA)`,
+    protectedApi.post(`/orders/${orderId}/cancel`),
+    `POST /orders/${orderId}/cancel`,
   );
 }
 
-export function updateSaleItemStatus(orderId: string, itemId: string, status: string) {
+export function updateSaleItemStatus(orderId: string, itemId: string, status: string, trackingCode?: string) {
+  const payload = trackingCode ? { status: status, tracking_code: trackingCode } : { status: status };
   return wrapRequest<OrderItemResponse>(
-    protectedApi.patch(`/orders/sales/${orderId}/items/${itemId}/status`, { status }),
+    protectedApi.patch(`/orders/sales/${orderId}/items/${itemId}/status`, payload),
     `PATCH /orders/sales/${orderId}/items/${itemId}/status`,
   );
 }
 
 export function cancelSaleItem(orderId: string, itemId: string) {
   return wrapRequest<OrderItemResponse>(
-    protectedApi.put(`/orders/sales/${orderId}/items/${itemId}/cancel`, {}),
-    `PUT /orders/sales/${orderId}/items/${itemId}/cancel`,
+    protectedApi.post(`/orders/sales/${orderId}/items/${itemId}/cancel`, {}),
+    `POST /orders/sales/${orderId}/items/${itemId}/cancel`,
   );
 }
 

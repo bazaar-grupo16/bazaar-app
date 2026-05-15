@@ -17,13 +17,27 @@ export type OrderCreatedResponse = {
   init_point?: string | null;
 };
 
+export type OrderItemStatus =
+  | "CONFIRMADO"
+  | "EN_PREPARACION"
+  | "ENVIADO"
+  | "ENTREGADO"
+  | "CANCELADO"
+  | "REEMBOLSO_EN_PROCESO"
+  | "REEMBOLSO_PROCESADO";
+
 export type OrderItemResponse = {
   id: string;
   product_id: string;
+  seller_id?: string | null;
   product_name: string;
   quantity: number;
   unit_price: number;
-  status?: string;
+  status: OrderItemStatus;
+  tracking_code?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  status_history?: OrderStatusHistoryEntry[];
 };
 
 export type OrderStatusHistoryEntry = {
@@ -39,7 +53,7 @@ export type OrderResponse = {
   order_id: string;
   user_id: string;
   status: OrderStatus;
-  aggregated_status?: string | null;
+  aggregated_status: OrderItemStatus | null;
   shipping_address: Record<string, unknown>;
   total_amount: number;
   tracking_code?: string | null;

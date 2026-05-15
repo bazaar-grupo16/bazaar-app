@@ -47,6 +47,8 @@ export function useCancelSaleItem(orderId: string) {
   return useMutation({
     mutationFn: (itemId: string) => cancelSaleItem(orderId, itemId),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
+      void queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: [...orderKeys.sales(), "detail", orderId] });
       void queryClient.invalidateQueries({ queryKey: [...orderKeys.sales(), "items", orderId] });
     },
@@ -57,10 +59,13 @@ export function useUpdateSaleItemStatus(orderId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ itemId, status }: { itemId: string; status: string }) =>
-      updateSaleItemStatus(orderId, itemId, status),
+    mutationFn: ({ itemId, status, trackingCode }: { itemId: string; status: string; trackingCode?: string }) =>
+      updateSaleItemStatus(orderId, itemId, status, trackingCode),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
+      void queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: [...orderKeys.sales(), "detail", orderId] });
+      void queryClient.invalidateQueries({ queryKey: [...orderKeys.sales(), "items", orderId] });
     },
   });
 }

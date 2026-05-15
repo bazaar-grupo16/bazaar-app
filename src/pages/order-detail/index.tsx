@@ -4,36 +4,40 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import type { RootStackParamList } from "@/navigation";
-import { useOrder, useSaleDetail, useUpdateOrderStatus, useCancelOrder, useCancelSaleItem, useConfirmItemDelivery } from "@/entities/order";
-import type { OrderStatus } from "@/entities/order";
+import { useOrder, useSaleDetail, useCancelOrder, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus } from "@/entities/order";
+import type { OrderItemStatus, OrderStatus } from "@/entities/order";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Button } from "@/shared/ui";
 import { colors, spacing, typography, radius } from "@/shared/styles";
 
-const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
-  CONFIRMADA: "EN_PREPARACION",
-  EN_PREPARACION: "ENVIADA",
-  ENVIADA: "ENTREGADA",
-};
-
 const BUYER_CANCELLABLE: OrderStatus[] = ["PENDIENTE_DE_PAGO", "CONFIRMADA", "EN_PREPARACION"];
-const SELLER_CANCELLABLE: OrderStatus[] = ["CONFIRMADA"];
-const SELLER_ITEM_CANCELLABLE: OrderStatus[] = ["CONFIRMADA", "EN_PREPARACION"];
+const SELLER_ITEM_CANCELLABLE: OrderItemStatus[] = ["CONFIRMADO", "EN_PREPARACION"];
 
-const NEXT_STATUS_LABEL: Partial<Record<OrderStatus, string>> = {
-  CONFIRMADA: "Marcar en preparación",
-  EN_PREPARACION: "Marcar como enviada",
-  ENVIADA: "Marcar como entregada",
+const SELLER_ITEM_NEXT_STATUS: Record<
+  OrderItemStatus,
+  { nextStatus: OrderItemStatus; label: string; requiresTrackingCode: boolean }
+> = {
+  CONFIRMADO: { nextStatus: "EN_PREPARACION", label: "Marcar en preparación", requiresTrackingCode: false },
+  EN_PREPARACION: { nextStatus: "ENVIADO", label: "Marcar como enviado", requiresTrackingCode: true },
+  ENVIADO: { nextStatus: "ENVIADO", label: "Marcar como enviado", requiresTrackingCode: true },
+  ENTREGADO: { nextStatus: "ENTREGADO", label: "Confirmado", requiresTrackingCode: false },
+  CANCELADO: { nextStatus: "CANCELADO", label: "Cancelado", requiresTrackingCode: false },
+  REEMBOLSO_EN_PROCESO: { nextStatus: "REEMBOLSO_EN_PROCESO", label: "Reembolso en proceso", requiresTrackingCode: false },
+  REEMBOLSO_PROCESADO: { nextStatus: "REEMBOLSO_PROCESADO", label: "Reembolso procesado", requiresTrackingCode: false },
 };
 
 type OrderDetailRouteProp = RouteProp<RootStackParamList, "OrderDetail">;
 
 export function OrderDetailPage() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<OrderDetailRouteProp>();
   const { orderId, fromCheckout, fromSales } = route.params;
-  const [trackingModalVisible, setTrackingModalVisible] = useState(false);
-  const [trackingInput, setTrackingInput] = useState("");
+  const [sellerTrackingModalVisible, setSellerTrackingModalVisible] = useState(false);
+  const [sellerTrackingInput, setSellerTrackingInput] = useState("");
+  const [sellerTrackingTarget, setSellerTrackingTarget] = useState<{ itemId: string; itemName: string } | null>(null);
+  const [expandedOrderHistory, setExpandedOrderHistory] = useState(false);
+  const [expandedItemHistories, setExpandedItemHistories] = useState<Record<string, boolean>>({});
 
   const handleBack = () => {
     if (fromCheckout) {
@@ -46,39 +50,12 @@ export function OrderDetailPage() {
   const buyerQuery = useOrder(fromSales ? undefined : orderId, false);
   const sellerQuery = useSaleDetail(fromSales ? orderId : undefined);
   const { data: order, isLoading } = fromSales ? sellerQuery : buyerQuery;
-  const { mutate: advanceStatus, isPending: isAdvancing } = useUpdateOrderStatus(orderId);
   const { mutate: cancelOrderMutate, isPending: isCancelling } = useCancelOrder(orderId);
   const { mutate: cancelItem, isPending: isCancellingItem, variables: cancellingItemId } = useCancelSaleItem(orderId);
   const { mutate: confirmDelivery, isPending: isConfirmingDelivery, variables: confirmingItemId } = useConfirmItemDelivery(orderId);
+  const { mutate: updateSaleItemStatus, isPending: isUpdatingSaleItemStatus, variables: updatingSaleItem } = useUpdateSaleItemStatus(orderId);
 
   const pageTitle = fromSales ? "Detalle de Venta" : "Detalle de Orden";
-
-  const handleAdvanceStatus = () => {
-    if (!order) return;
-    const next = NEXT_STATUS[order.status];
-    const label = NEXT_STATUS_LABEL[order.status];
-    if (!next || !label) return;
-
-    if (order.status === "EN_PREPARACION") {
-      setTrackingInput("");
-      setTrackingModalVisible(true);
-      return;
-    }
-
-    Alert.alert(
-      "Confirmar cambio de estado",
-      `¿Querés avanzar la orden a "${next.replace(/_/g, " ")}"?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Confirmar", onPress: () => advanceStatus({ status: next }) },
-      ],
-    );
-  };
-
-  const handleConfirmShipment = () => {
-    setTrackingModalVisible(false);
-    advanceStatus({ status: "ENVIADA", trackingCode: trackingInput.trim() || undefined });
-  };
 
   const handleCancelOrder = () => {
     Alert.alert(
@@ -108,9 +85,47 @@ export function OrderDetailPage() {
       `¿Confirmás que recibiste "${itemName}"?`,
       [
         { text: "No, volver", style: "cancel" },
-        { text: "Sí, confirmar", onPress: () => confirmDelivery(itemId) },
+        { text: "Sí, confirmar", onPress: () => void confirmDelivery(itemId) },
       ],
     );
+  };
+
+  const handleSellerItemStatus = (itemId: string, itemName: string, currentStatus: OrderItemStatus) => {
+    const next = SELLER_ITEM_NEXT_STATUS[currentStatus];
+    if (next.requiresTrackingCode) {
+      setSellerTrackingTarget({ itemId, itemName });
+      setSellerTrackingInput("");
+      setSellerTrackingModalVisible(true);
+      return;
+    }
+
+    updateSaleItemStatus({
+      itemId,
+      status: next.nextStatus,
+    });
+  };
+
+  const handleSellerTrackingConfirm = () => {
+    if (!sellerTrackingTarget) return;
+
+    updateSaleItemStatus({
+      itemId: sellerTrackingTarget.itemId,
+      status: "ENVIADO",
+      ...(sellerTrackingInput.trim() ? { trackingCode: sellerTrackingInput.trim() } : {}),
+    });
+    setSellerTrackingModalVisible(false);
+    setSellerTrackingTarget(null);
+  };
+
+  const toggleOrderHistory = () => {
+    setExpandedOrderHistory((current) => !current);
+  };
+
+  const toggleItemHistory = (itemId: string) => {
+    setExpandedItemHistories((current) => ({
+      ...current,
+      [itemId]: !current[itemId],
+    }));
   };
 
   if (isLoading) {
@@ -152,6 +167,7 @@ export function OrderDetailPage() {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const orderHistory = (order.status_history ?? []).filter((event) => !event.item_id);
 
   return (
     <View style={[styles.fill, { paddingTop: insets.top }]}>
@@ -163,19 +179,22 @@ export function OrderDetailPage() {
       </View>
 
       <Modal
-        visible={trackingModalVisible}
+        visible={sellerTrackingModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setTrackingModalVisible(false)}
+        onRequestClose={() => {
+          setSellerTrackingModalVisible(false);
+          setSellerTrackingTarget(null);
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Código de seguimiento</Text>
-            <Text style={styles.modalSubtitle}>Ingresá el código de seguimiento (opcional)</Text>
+            <Text style={styles.modalSubtitle}>Ingresá el código de seguimiento del ítem (opcional)</Text>
             <TextInput
               style={styles.modalInput}
-              value={trackingInput}
-              onChangeText={setTrackingInput}
+              value={sellerTrackingInput}
+              onChangeText={setSellerTrackingInput}
               placeholder="Ej: AR123456789"
               autoCapitalize="characters"
               autoFocus
@@ -183,11 +202,14 @@ export function OrderDetailPage() {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.modalButtonSecondary}
-                onPress={() => setTrackingModalVisible(false)}
+                onPress={() => {
+                  setSellerTrackingModalVisible(false);
+                  setSellerTrackingTarget(null);
+                }}
               >
                 <Text style={styles.modalButtonSecondaryText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButtonPrimary} onPress={handleConfirmShipment}>
+              <TouchableOpacity style={styles.modalButtonPrimary} onPress={handleSellerTrackingConfirm}>
                 <Text style={styles.modalButtonPrimaryText}>Confirmar envío</Text>
               </TouchableOpacity>
             </View>
@@ -195,12 +217,21 @@ export function OrderDetailPage() {
         </View>
       </Modal>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}> 
         <View style={styles.section}>
           <Text style={styles.orderId}>Orden #{order.order_id.split("-")[0]}</Text>
           <Text style={styles.orderDate}>{date}</Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{order.status.replace(/_/g, " ")}</Text>
+          <View style={styles.summaryBadgeRow}>
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>Pago: {order.status.replace(/_/g, " ")}</Text>
+            </View>
+            {order.aggregated_status && (
+              <View style={styles.aggregatedStatusBadge}>
+                <Text style={styles.aggregatedStatusText}>
+                  Envío: {order.aggregated_status.replace(/_/g, " ")}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -225,7 +256,7 @@ export function OrderDetailPage() {
 
         {!fromSales && order.tracking_code && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Código de seguimiento</Text>
+            <Text style={styles.sectionTitle}>Seguimiento general</Text>
             <View style={styles.trackingRow}>
               <Ionicons name="locate-outline" size={20} color={colors.brand[500]} />
               <Text style={styles.trackingCode}>{order.tracking_code}</Text>
@@ -234,50 +265,113 @@ export function OrderDetailPage() {
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Items</Text>
+          <Text style={styles.sectionTitle}>{fromSales ? "Items vendidos" : "Items"}</Text>
           {order.items.map((item) => {
-            const canCancelItem = fromSales && SELLER_ITEM_CANCELLABLE.includes(order.status);
-            const canConfirmDelivery = !fromSales && (order.status === "ENVIADA" || item.status === "ENVIADO");
+            const canCancelItem = fromSales && SELLER_ITEM_CANCELLABLE.includes(item.status);
+            const canBuyerConfirmItem = !fromSales && item.status === "ENVIADO";
+            const sellerItemAction = fromSales ? SELLER_ITEM_NEXT_STATUS[item.status] : null;
             const isThisItemCancelling = isCancellingItem && cancellingItemId === item.id;
             const isThisItemConfirming = isConfirmingDelivery && confirmingItemId === item.id;
+            const isThisItemUpdating = isUpdatingSaleItemStatus && updatingSaleItem?.itemId === item.id;
+            const itemHistoryExpanded = expandedItemHistories[item.id] === true;
+            const itemHistory = item.status_history ?? [];
+
             return (
-              <View key={item.id} style={styles.itemRow}>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.product_name}</Text>
-                  <Text style={styles.itemQuantity}>Cantidad: {item.quantity}</Text>
-                  {item.status && (
+              <View key={item.id} style={styles.itemCard}>
+                <View style={styles.itemRow}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.product_name}</Text>
+                    <Text style={styles.itemQuantity}>Cantidad: {item.quantity}</Text>
                     <Text style={styles.itemStatus}>{item.status.replace(/_/g, " ")}</Text>
-                  )}
+                    {item.tracking_code && (
+                      <Text style={styles.itemTrackingCode}>Tracking: {item.tracking_code}</Text>
+                    )}
+                  </View>
+                  <View style={styles.itemRight}>
+                    <Text style={styles.itemPrice}>${(item.unit_price * item.quantity).toFixed(2)}</Text>
+                    {canCancelItem && (
+                      <TouchableOpacity
+                        onPress={() => handleCancelItem(item.id, item.product_name)}
+                        disabled={isCancellingItem}
+                        style={styles.cancelItemButton}
+                      >
+                        {isThisItemCancelling ? (
+                          <ActivityIndicator size="small" color={colors.gray[400]} />
+                        ) : (
+                          <Ionicons name="trash-outline" size={18} color={colors.gray[400]} />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {sellerItemAction && sellerItemAction.nextStatus !== item.status && (
+                      <TouchableOpacity
+                        onPress={() => handleSellerItemStatus(item.id, item.product_name, item.status)}
+                        disabled={isUpdatingSaleItemStatus}
+                        style={styles.sellerActionButton}
+                      >
+                        {isThisItemUpdating ? (
+                          <ActivityIndicator size="small" color={colors.white} />
+                        ) : (
+                          <Text style={styles.sellerActionButtonText}>{sellerItemAction.label}</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {canBuyerConfirmItem && (
+                      <TouchableOpacity
+                        onPress={() => handleConfirmDelivery(item.id, item.product_name)}
+                        disabled={isConfirmingDelivery}
+                        style={[styles.confirmReceiptButton, isConfirmingDelivery && styles.buttonDisabled]}
+                      >
+                        {isThisItemConfirming ? (
+                          <ActivityIndicator size="small" color={colors.white} />
+                        ) : (
+                          <>
+                            <Ionicons name="checkmark-circle-outline" size={20} color={colors.white} />
+                            <Text style={styles.confirmReceiptButtonText}>Confirmar recepción</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
-                <View style={styles.itemRight}>
-                  <Text style={styles.itemPrice}>${(item.unit_price * item.quantity).toFixed(2)}</Text>
-                  {canCancelItem && (
+
+                {itemHistory.length > 0 && (
+                  <View style={styles.itemHistorySection}>
                     <TouchableOpacity
-                      onPress={() => handleCancelItem(item.id, item.product_name)}
-                      disabled={isCancellingItem}
-                      style={styles.cancelItemButton}
+                      onPress={() => toggleItemHistory(item.id)}
+                      activeOpacity={0.8}
+                      style={styles.historyToggle}
                     >
-                      {isThisItemCancelling ? (
-                        <ActivityIndicator size="small" color={colors.gray[400]} />
-                      ) : (
-                        <Ionicons name="trash-outline" size={18} color={colors.gray[400]} />
-                      )}
+                      <Text style={styles.historyToggleText}>Historial del ítem</Text>
+                      <Ionicons
+                        name={itemHistoryExpanded ? "chevron-up" : "chevron-down"}
+                        size={18}
+                        color={colors.gray[500]}
+                      />
                     </TouchableOpacity>
-                  )}
-                  {canConfirmDelivery && (
-                    <TouchableOpacity
-                      onPress={() => handleConfirmDelivery(item.id, item.product_name)}
-                      disabled={isConfirmingDelivery}
-                      style={styles.confirmButton}
-                    >
-                      {isThisItemConfirming ? (
-                        <ActivityIndicator size="small" color={colors.brand[500]} />
-                      ) : (
-                        <Ionicons name="checkmark-circle-outline" size={20} color={colors.brand[500]} />
-                      )}
-                    </TouchableOpacity>
-                  )}
-                </View>
+
+                    {itemHistoryExpanded && (
+                      <View style={styles.historyList}>
+                        {itemHistory.map((event, index) => (
+                          <View key={`${item.id}-${index}`} style={styles.transactionRow}>
+                            <View style={styles.transactionDot} />
+                            <View style={styles.transactionInfo}>
+                              <Text style={styles.transactionStatus}>{event.new_status.replace(/_/g, " ")}</Text>
+                              <Text style={styles.transactionDate}>
+                                {new Date(event.timestamp).toLocaleDateString("es-AR", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             );
           })}
@@ -287,63 +381,38 @@ export function OrderDetailPage() {
           </View>
         </View>
 
-        {order.status_history && order.status_history.length > 0 && (
+        {!fromSales && orderHistory.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Historial</Text>
-            {order.status_history.map((t, i) => (
-              <View key={i} style={styles.transactionRow}>
-                <View style={styles.transactionDot} />
-                <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionStatus}>{t.new_status.replace(/_/g, " ")}</Text>
-                  <Text style={styles.transactionDate}>
-                    {new Date(t.timestamp).toLocaleDateString("es-AR", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                </View>
+            <TouchableOpacity onPress={toggleOrderHistory} activeOpacity={0.8} style={styles.historyHeader}>
+              <Text style={styles.sectionTitle}>Historial de la orden</Text>
+              <Ionicons
+                name={expandedOrderHistory ? "chevron-up" : "chevron-down"}
+                size={18}
+                color={colors.gray[500]}
+              />
+            </TouchableOpacity>
+            {expandedOrderHistory && (
+              <View style={styles.historyList}>
+                {orderHistory.map((t, i) => (
+                  <View key={i} style={styles.transactionRow}>
+                    <View style={styles.transactionDot} />
+                    <View style={styles.transactionInfo}>
+                      <Text style={styles.transactionStatus}>{t.new_status.replace(/_/g, " ")}</Text>
+                      <Text style={styles.transactionDate}>
+                        {new Date(t.timestamp).toLocaleDateString("es-AR", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
               </View>
-            ))}
+            )}
           </View>
-        )}
-
-        {fromSales && NEXT_STATUS[order.status] && (
-          <TouchableOpacity
-            style={[styles.advanceButton, isAdvancing && styles.buttonDisabled]}
-            onPress={handleAdvanceStatus}
-            disabled={isAdvancing}
-            activeOpacity={0.8}
-          >
-            {isAdvancing ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <>
-                <Ionicons name="arrow-forward-circle-outline" size={20} color={colors.white} />
-                <Text style={styles.advanceButtonText}>{NEXT_STATUS_LABEL[order.status]}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {fromSales && SELLER_CANCELLABLE.includes(order.status) && (
-          <TouchableOpacity
-            style={[styles.cancelButton, isCancelling && styles.buttonDisabled]}
-            onPress={handleCancelOrder}
-            disabled={isCancelling}
-            activeOpacity={0.8}
-          >
-            {isCancelling ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <>
-                <Ionicons name="close-circle-outline" size={20} color={colors.white} />
-                <Text style={styles.advanceButtonText}>Cancelar orden</Text>
-              </>
-            )}
-          </TouchableOpacity>
         )}
 
         {!fromSales && BUYER_CANCELLABLE.includes(order.status) && (
@@ -358,7 +427,7 @@ export function OrderDetailPage() {
             ) : (
               <>
                 <Ionicons name="close-circle-outline" size={20} color={colors.white} />
-                <Text style={styles.advanceButtonText}>Cancelar orden</Text>
+                <Text style={styles.advanceButtonText}>Cancelar compra</Text>
               </>
             )}
           </TouchableOpacity>
@@ -427,22 +496,39 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand[100],
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    borderRadius: radius.full,
+    borderRadius: 999,
   },
   statusText: {
     color: colors.brand[700],
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
   },
+  summaryBadgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  aggregatedStatusBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.gray[100],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+  },
+  aggregatedStatusText: {
+    color: colors.gray[700],
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+  },
   sectionTitle: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.bold,
-    color: colors.gray[800],
+    color: colors.gray[700],
     marginBottom: spacing.sm,
   },
   addressText: {
     fontSize: typography.size.md,
-    color: colors.gray[600],
+    color: colors.gray[700],
     lineHeight: 22,
   },
   trackingRow: {
@@ -463,6 +549,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray[100],
+  },
+  itemCard: {
+    paddingVertical: spacing.xs,
   },
   itemInfo: {
     flex: 1,
@@ -506,7 +595,7 @@ const styles = StyleSheet.create({
   },
   buyerText: {
     fontSize: typography.size.sm,
-    color: colors.gray[600],
+    color: colors.gray[700],
     flex: 1,
   },
   itemRight: {
@@ -519,11 +608,50 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.semibold,
     marginTop: 2,
   },
+  itemTrackingCode: {
+    fontSize: typography.size.sm,
+    color: colors.gray[500],
+    marginTop: 2,
+  },
   cancelItemButton: {
     padding: spacing.xs,
   },
   confirmButton: {
     padding: spacing.xs,
+  },
+  sellerActionButton: {
+    backgroundColor: colors.brand[500],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+  },
+  sellerActionButtonText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
+  },
+  itemHistorySection: {
+    marginTop: spacing.sm,
+  },
+  historyToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.xs,
+  },
+  historyToggleText: {
+    fontSize: typography.size.sm,
+    color: colors.gray[700],
+    fontWeight: typography.weight.semibold,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  historyList: {
+    marginTop: spacing.xs,
+    gap: spacing.xs,
   },
   transactionRow: {
     flexDirection: "row",
@@ -544,11 +672,11 @@ const styles = StyleSheet.create({
   transactionStatus: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-    color: colors.gray[900],
+    color: colors.gray[700],
   },
   transactionDate: {
     fontSize: typography.size.sm,
-    color: colors.gray[500],
+    color: colors.gray[700],
   },
   advanceButton: {
     flexDirection: "row",
@@ -568,8 +696,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
   },
+  confirmReceiptButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    backgroundColor: "#16a34a",
+    borderRadius: radius.lg,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    minHeight: 56,
+    marginTop: spacing.sm,
+  },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  confirmReceiptButtonText: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
   },
   advanceButtonText: {
     fontSize: typography.size.md,
@@ -593,11 +738,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,
-    color: colors.gray[900],
+    color: colors.gray[700],
   },
   modalSubtitle: {
     fontSize: typography.size.sm,
-    color: colors.gray[500],
+    color: colors.gray[700],
   },
   modalInput: {
     borderWidth: 1,

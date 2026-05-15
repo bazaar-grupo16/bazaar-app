@@ -5,12 +5,16 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { useOrdersHistory, useSalesHistory, type OrderResponse, type OrderStatus } from "@/entities/order";
+import { useOrdersHistory, useSalesHistory, type OrderResponse, type OrderStatus, type OrderItemResponse } from "@/entities/order";
 import { colors, spacing, typography, radius } from "@/shared/styles";
 import { useAuthStore } from "@/shared/auth";
 
 type Section = "compras" | "ventas";
 type FilterOption = { label: string; value: OrderStatus | null };
+type SaleItemCard = {
+  order: OrderResponse;
+  item: OrderItemResponse;
+};
 
 const PURCHASE_FILTERS: FilterOption[] = [
   { label: "Todas", value: null },
@@ -57,7 +61,9 @@ export function OrdersPage() {
   } = useSalesHistory(1, 50, saleStatus ?? undefined);
 
   const orders = purchaseData?.orders ?? [];
-  const sales = salesData?.orders ?? [];
+  const sales = (salesData?.orders ?? []).flatMap((order) =>
+    order.items.map((item) => ({ order, item })),
+  );
 
   const renderPurchaseItem = useCallback(
     ({ item }: { item: OrderResponse }) => {
@@ -76,7 +82,7 @@ export function OrdersPage() {
             <Text style={styles.orderDate}>{date}</Text>
           </View>
           <View style={styles.cardBody}>
-            <Text style={styles.orderStatus}>{item.status.replace(/_/g, " ")}</Text>
+            <Text style={styles.orderStatus}>{(item.aggregated_status ?? item.status).replace(/_/g, " ")}</Text>
             <Text style={styles.orderTotal}>${item.total_amount.toFixed(2)}</Text>
           </View>
         </TouchableOpacity>
@@ -86,32 +92,30 @@ export function OrdersPage() {
   );
 
   const renderSaleItem = useCallback(
-    ({ item }: { item: OrderResponse }) => {
-      const date = new Date(item.created_at).toLocaleDateString("es-AR", {
+    ({ item }: { item: SaleItemCard }) => {
+      const date = new Date(item.order.created_at).toLocaleDateString("es-AR", {
         day: "2-digit",
         month: "short",
         year: "numeric",
       });
-      const firstItem = item.items[0];
       return (
         <TouchableOpacity
           style={styles.card}
-          onPress={() => navigation.navigate("OrderDetail", { orderId: item.order_id, fromSales: true })}
+          onPress={() => navigation.navigate("OrderDetail", { orderId: item.order.order_id, fromSales: true })}
           activeOpacity={0.8}
         >
           <View style={styles.cardHeader}>
-            <Text style={styles.orderId}>#{item.order_id.split("-")[0]}</Text>
+            <Text style={styles.orderId}>#{item.order.order_id.split("-")[0]}</Text>
             <Text style={styles.orderDate}>{date}</Text>
           </View>
-          {firstItem && (
-            <Text style={styles.productName} numberOfLines={1}>
-              {firstItem.product_name}
-              {item.items.length > 1 ? ` +${item.items.length - 1} más` : ""}
-            </Text>
-          )}
           <View style={styles.cardBody}>
-            <Text style={styles.saleStatus}>{item.status.replace(/_/g, " ")}</Text>
-            <Text style={styles.orderTotal}>${item.total_amount.toFixed(2)}</Text>
+            <View style={styles.saleInfo}>
+              <Text style={styles.productName} numberOfLines={1}>
+                {item.item.product_name}
+              </Text>
+              <Text style={styles.saleStatus}>{item.item.status.replace(/_/g, " ")}</Text>
+            </View>
+            <Text style={styles.orderTotal}>${(item.item.unit_price * item.item.quantity).toFixed(2)}</Text>
           </View>
         </TouchableOpacity>
       );
@@ -173,9 +177,6 @@ export function OrdersPage() {
   const isLoading = section === "compras" ? purchaseLoading : salesLoading;
   const isRefetching = section === "compras" ? purchaseRefetching : salesRefetching;
   const refetch = section === "compras" ? refetchPurchases : refetchSales;
-  const items = section === "compras" ? orders : sales;
-  const renderItem = section === "compras" ? renderPurchaseItem : renderSaleItem;
-
   return (
     <View style={styles.fill}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -205,31 +206,44 @@ export function OrdersPage() {
             <ActivityIndicator size="large" color={colors.brand[500]} />
           </View>
         </>
-      ) : (
+      ) : section === "compras" ? (
         <FlatList
-          data={items}
+          data={orders}
           keyExtractor={(item) => item.order_id}
-          renderItem={renderItem}
+          renderItem={renderPurchaseItem}
           ListHeaderComponent={filtersHeader}
           ListEmptyComponent={
             <View style={styles.centered}>
-              <Ionicons
-                name={section === "compras" ? "cube-outline" : "storefront-outline"}
-                size={64}
-                color={colors.gray[300]}
-              />
+              <Ionicons name="cube-outline" size={64} color={colors.gray[300]} />
               <Text style={styles.emptyTitle}>
-                {selectedStatus
-                  ? `Sin ${section} en este estado`
-                  : section === "compras"
-                  ? "Todavía no tenés pedidos"
-                  : "Todavía no tenés ventas"}
+                {selectedStatus ? "Sin compras en este estado" : "Todavía no tenés pedidos"}
               </Text>
               <Text style={styles.emptyText}>
                 {selectedStatus
                   ? "Probá con otro filtro"
-                  : section === "compras"
-                  ? "Cuando realices una compra, tus pedidos van a aparecer acá."
+                  : "Cuando realices una compra, tus pedidos van a aparecer acá."}
+              </Text>
+            </View>
+          }
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.md, flexGrow: 1 }]}
+          refreshing={isRefetching}
+          onRefresh={() => void refetch()}
+        />
+      ) : (
+        <FlatList
+          data={sales}
+          keyExtractor={(item) => `${item.order.order_id}:${item.item.id}`}
+          renderItem={renderSaleItem}
+          ListHeaderComponent={filtersHeader}
+          ListEmptyComponent={
+            <View style={styles.centered}>
+              <Ionicons name="storefront-outline" size={64} color={colors.gray[300]} />
+              <Text style={styles.emptyTitle}>
+                {selectedStatus ? "Sin ventas en este estado" : "Todavía no tenés ventas"}
+              </Text>
+              <Text style={styles.emptyText}>
+                {selectedStatus
+                  ? "Probá con otro filtro"
                   : "Cuando alguien compre tus productos, aparecerán acá."}
               </Text>
             </View>
@@ -373,6 +387,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  saleInfo: {
+    flex: 1,
+    gap: 4,
   },
   orderStatus: {
     fontSize: typography.size.sm,
