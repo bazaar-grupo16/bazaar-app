@@ -4,7 +4,7 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import type { RootStackParamList } from "@/navigation";
-import { useOrder, useSaleDetail, useCancelOrder, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus } from "@/entities/order";
+import { useOrder, useSaleDetail, useCancelOrder, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus, getStatusColor } from "@/entities/order";
 import type { OrderItemStatus, OrderStatus } from "@/entities/order";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Button } from "@/shared/ui";
@@ -222,12 +222,14 @@ export function OrderDetailPage() {
           <Text style={styles.orderId}>Orden #{order.order_id.split("-")[0]}</Text>
           <Text style={styles.orderDate}>{date}</Text>
           <View style={styles.summaryBadgeRow}>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>Pago: {order.status.replace(/_/g, " ")}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) + "20" }]}>
+              <Text style={[styles.statusText, { color: getStatusColor(order.status) }]}>
+                Pago: {order.status.replace(/_/g, " ")}
+              </Text>
             </View>
             {order.aggregated_status && (
-              <View style={styles.aggregatedStatusBadge}>
-                <Text style={styles.aggregatedStatusText}>
+              <View style={[styles.aggregatedStatusBadge, { backgroundColor: getStatusColor(order.aggregated_status) + "20" }]}>
+                <Text style={[styles.aggregatedStatusText, { color: getStatusColor(order.aggregated_status) }]}>
                   Envío: {order.aggregated_status.replace(/_/g, " ")}
                 </Text>
               </View>
