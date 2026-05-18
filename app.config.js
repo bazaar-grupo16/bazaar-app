@@ -41,6 +41,7 @@ export default {
     owner: "bazaar-grupo16",
     plugins: [
       "expo-secure-store",
+      "expo-web-browser",
       [
         "expo-notifications",
         {
