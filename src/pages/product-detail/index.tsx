@@ -29,7 +29,7 @@ import type { Product } from "@/entities/product";
 import { useAddToCart, useCart } from "@/entities/cart";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
 import { getPublicProfile } from "@/entities/profile/api/profile";
-import { useSessionUserId, clearAuthSession } from "@/shared/auth";
+import { useSessionUserId, clearAuthSession, usePendingActionStore } from "@/shared/auth";
 import { ApiError, apiGet } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
@@ -139,6 +139,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const isWishlisted = !!userId && (wishlistData?.items.some((i) => i.product_id === product.id) ?? false);
   const addToWishlist = useAddToWishlist();
   const removeFromWishlist = useRemoveFromWishlist();
+  const setPendingWishlist = usePendingActionStore((s) => s.setPendingWishlist);
 
   const toggleWishlist = () => {
     if (!userId) {
@@ -150,6 +151,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
           {
             text: "Iniciar sesión",
             onPress: () => {
+              setPendingWishlist({ productId: product.id, action: "add" });
               void clearAuthSession();
               navigation.navigate("Login");
             },
