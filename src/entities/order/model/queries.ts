@@ -18,13 +18,13 @@ export function useOrder(
 ) {
   const userId = useSessionUserId();
   return useQuery<OrderResponse, Error, OrderResponse>({
-    queryKey: orderId ? orderKeys.detail(orderId) : [],
+    queryKey: orderId ? orderKeys.detail(orderId) : ([] as const),
     queryFn: () => {
       if (!orderId) throw new Error("No order ID provided");
       return getOrder(orderId);
     },
     enabled: !!userId && !!orderId,
-    refetchInterval,
+    ...(refetchInterval !== undefined && { refetchInterval }),
   });
 }
 
