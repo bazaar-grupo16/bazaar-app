@@ -8,14 +8,44 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.bazaar.app"
+      "bundleIdentifier": "com.bazaar.app",
+      "associatedDomains": [
+        "applinks:bazaar.pib.ar"
+      ]
     },
     "android": {
-      "package": "com.bazaar.app"
+      "package": "com.bazaar.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "bazaar.pib.ar",
+              "pathPrefix": "/products"
+            },
+            {
+              "scheme": "https",
+              "host": "bazaar.pib.ar",
+              "pathPrefix": "/order-polling"
+            },
+            {
+              "scheme": "https",
+              "host": "bazaar.pib.ar",
+              "pathPrefix": "/order-result"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "single"
     },
     "scheme": "bazaar",
     "extra": {
@@ -23,6 +53,9 @@
         "projectId": "e732a3a7-c154-452b-9582-f87ac91ba8c9"
       }
     },
-    "owner": "valenpontaut"
+    "owner": "bazaar-grupo16",
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
