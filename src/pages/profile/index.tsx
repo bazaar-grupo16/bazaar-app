@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { ScrollView, View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
 import { clearAuthSession, useAuthStore } from "@/shared/auth";
 import { useMyProducts } from "@/entities/product";
 import { useOrdersHistory, useSalesHistory } from "@/entities/order";
+import { wishlistKeys } from "@/entities/wishlist";
 import { colors, typography, spacing, radius } from "@/shared/styles";
 import type { Tab, PublicationsSubTab } from "./types";
 
@@ -30,6 +32,7 @@ const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: stri
 
 export function ProfilePage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Tabs">>();
+  const queryClient = useQueryClient();
   const isGuest = !useAuthStore((state) => state.accessToken);
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
@@ -101,6 +104,8 @@ export function ProfilePage() {
   }
 
   const handleSignOut = async () => {
+    await queryClient.cancelQueries({ queryKey: wishlistKeys.all });
+    queryClient.removeQueries({ queryKey: wishlistKeys.all });
     await clearAuthSession();
   };
 

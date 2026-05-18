@@ -125,6 +125,7 @@ export function ProductDetailPage() {
 type AddToCartFeedback = "idle" | "loading" | "success" | "error";
 
 function ProductDetailView({ product, onBack }: { product: Product; onBack: () => void }) {
+  const navigation = useNavigation<ProductDetailNavigationProps>();
   const insets = useSafeAreaInsets();
   const isInactive = product.status === "inactive";
   const isOutOfStock = product.status === "out_of_stock";
@@ -135,7 +136,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   const userId = useSessionUserId();
   const { data: cartData } = useCart();
   const { data: wishlistData } = useWishlist(!!userId);
-  const isWishlisted = wishlistData?.items.some((i) => i.product_id === product.id) ?? false;
+  const isWishlisted = !!userId && (wishlistData?.items.some((i) => i.product_id === product.id) ?? false);
   const addToWishlist = useAddToWishlist();
   const removeFromWishlist = useRemoveFromWishlist();
   const setPendingWishlist = usePendingActionStore((s) => s.setPendingWishlist);
@@ -152,6 +153,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
             onPress: () => {
               setPendingWishlist({ productId: product.id, action: "add" });
               void clearAuthSession();
+              navigation.navigate("Login");
             },
           },
         ],
@@ -193,6 +195,23 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
   };
 
   const handleAddToCart = useCallback(() => {
+    if (!userId) {
+      Alert.alert(
+        "Iniciá sesión",
+        "Para agregar productos al carrito necesitás tener una cuenta.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Iniciar sesión",
+            onPress: () => {
+              void clearAuthSession();
+              navigation.navigate("Login");
+            },
+          },
+        ],
+      );
+      return;
+    }
     if (!canAddToCart) return;
     setFeedback("loading");
     setErrorMsg("");
@@ -218,7 +237,7 @@ function ProductDetailView({ product, onBack }: { product: Product; onBack: () =
         },
       }
     );
-  }, [canAddToCart, addToCart, product.id, quantity]);
+  }, [userId, canAddToCart, addToCart, product.id, quantity, navigation]);
 
   const handleShare = useCallback(async () => {
     try {

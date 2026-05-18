@@ -21,6 +21,7 @@ import { useProducts, type Product } from "@/entities/product";
 import { getMyProfile } from "@/entities/profile/api/profile";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/entities/wishlist";
 import { useSessionUserId, clearAuthSession, usePendingActionStore } from "@/shared/auth";
+import { ApiError } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { PRODUCT_CATEGORIES } from "@/shared/config/categories";
@@ -107,8 +108,8 @@ export function HomePage() {
 
   // Favorites (wishlist API)
   const userId = useSessionUserId();
-  const { data: wishlistData } = useWishlist(!isGuest);
-  const wishlistIds = new Set((wishlistData?.items ?? []).map((i) => i.product_id));
+  const { data: wishlistData, refetch: refetchWishlist } = useWishlist(!isGuest);
+  const wishlistIds = new Set(userId ? (wishlistData?.items ?? []).map((i) => i.product_id) : []);
   const addToWishlist = useAddToWishlist();
   const removeFromWishlist = useRemoveFromWishlist();
   const pendingWishlist = usePendingActionStore((s) => s.pendingWishlist);
@@ -178,16 +179,41 @@ export function HomePage() {
     }
   }, [data]);
 
-  // Resume pending wishlist action after authentication
+  // Resume pending wishlist action after authentication.
   useEffect(() => {
     if (!userId || !pendingWishlist) return;
+
     const { productId, action } = pendingWishlist;
     setPendingWishlist(null);
-    if (action === "add") {
-      addToWishlist.mutate(productId);
-    } else {
-      removeFromWishlist.mutate(productId);
+
+    if (action !== "add") return;
+
+    async function resumeWishlistAdd() {
+      try {
+        const result = await refetchWishlist();
+        const items = result.data?.items ?? [];
+
+        if (items.some((item) => item.product_id === productId)) {
+          Alert.alert("Ya estaba en favoritos", "Este producto ya estaba en tus favoritos.");
+          return;
+        }
+
+        addToWishlist.mutate(productId, {
+          onError: (err) => {
+            if (err instanceof ApiError && err.status === 409) {
+              Alert.alert("Ya estaba en favoritos", "Este producto ya estaba en tus favoritos.");
+              return;
+            }
+
+            Alert.alert("No pudimos agregarlo", "No pudimos agregarlo a favoritos. Intentá de nuevo.");
+          },
+        });
+      } catch {
+        Alert.alert("No pudimos agregarlo", "No pudimos agregarlo a favoritos. Intentá de nuevo.");
+      }
     }
+
+    void resumeWishlistAdd();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, pendingWishlist]);
 
@@ -208,6 +234,7 @@ export function HomePage() {
             onPress: () => {
               setPendingWishlist({ productId: id, action: "add" });
               void clearAuthSession();
+              navigation.navigate("Login");
             },
           },
         ],
