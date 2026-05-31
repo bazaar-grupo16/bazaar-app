@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
 import { clearAuthSession, useAuthStore } from "@/shared/auth";
+import { apiDelete } from "@/shared/api";
 import { useMyProducts } from "@/entities/product";
 import { useOrdersHistory, useSalesHistory } from "@/entities/order";
 import { wishlistKeys } from "@/entities/wishlist";
@@ -106,6 +107,13 @@ export function ProfilePage() {
   const handleSignOut = async () => {
     await queryClient.cancelQueries({ queryKey: wishlistKeys.all });
     queryClient.removeQueries({ queryKey: wishlistKeys.all });
+    try {
+      console.debug("Cerrando sesión en el servidor...");
+      await apiDelete("/logout");
+    } catch (error) {
+      console.error("[auth] logout endpoint failed:", error);
+      // best-effort: always clear locally regardless
+    }
     await clearAuthSession();
   };
 
