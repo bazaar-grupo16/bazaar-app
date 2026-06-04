@@ -38,6 +38,16 @@ export default {
       },
     },
     owner: "bazaar-grupo16",
-    plugins: ["expo-secure-store"],
+    plugins: [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#ff6900",
+          defaultChannel: "default",
+        },
+      ],
+    ],
   },
 };
