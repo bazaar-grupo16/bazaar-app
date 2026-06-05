@@ -107,6 +107,7 @@ export function ProfilePage() {
   const handleSignOut = async () => {
     await queryClient.cancelQueries({ queryKey: wishlistKeys.all });
     queryClient.removeQueries({ queryKey: wishlistKeys.all });
+    queryClient.removeQueries({ queryKey: ["my-profile"] });
     try {
       console.debug("Cerrando sesión en el servidor...");
       await apiDelete("/logout");
@@ -115,6 +116,7 @@ export function ProfilePage() {
       // best-effort: always clear locally regardless
     }
     await clearAuthSession();
+    setUserProfile(null);
   };
 
   const handlePreview = (productId: string) => {
