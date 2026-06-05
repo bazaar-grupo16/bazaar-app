@@ -5,7 +5,9 @@ import { HomePage } from "@/pages/home";
 import { OrdersPage } from "@/pages/orders";
 import { PublishPage } from "@/pages/publish";
 import { CartPage } from "@/pages/cart";
+import { NotificationsPage } from "@/pages/notifications";
 import { ProfilePage } from "@/pages/profile";
+import { useUnreadNotificationCount } from "@/entities/notification";
 import { colors, typography } from "@/shared/styles";
 
 export type TabsParamList = {
@@ -13,6 +15,7 @@ export type TabsParamList = {
   Orders: undefined;
   Publish: undefined;
   Cart: undefined;
+  Notifications: undefined;
   Profile: undefined;
 };
 
@@ -34,6 +37,9 @@ function PublishTabButton({ onPress }: { onPress: (() => void) | undefined }) {
 }
 
 export function TabsNavigator() {
+  const { data } = useUnreadNotificationCount();
+  const unreadCount = data?.unread_count ?? 0;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -48,6 +54,7 @@ export function TabsNavigator() {
             Home: "home-outline",
             Orders: "cube-outline",
             Cart: "cart-outline",
+            Notifications: "notifications-outline",
             Profile: "person-outline",
           };
           return <Ionicons name={icons[route.name]} size={size} color={color} />;
@@ -68,6 +75,14 @@ export function TabsNavigator() {
         }}
       />
       <Tab.Screen name="Cart" component={CartPage} options={{ tabBarLabel: "Carrito" }} />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsPage}
+        options={{
+          tabBarLabel: "Avisos",
+          ...(unreadCount > 0 ? { tabBarBadge: unreadCount } : {}),
+        }}
+      />
       <Tab.Screen name="Profile" component={ProfilePage} options={{ tabBarLabel: "Perfil" }} />
     </Tab.Navigator>
   );

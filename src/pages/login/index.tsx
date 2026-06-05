@@ -92,6 +92,12 @@ export function LoginPage() {
         
         if (err.status === 401) {
           setError("Email o contraseña incorrectos");
+        } else if (err.status === 403) {
+          Alert.alert(
+            "Cuenta bloqueada",
+            err.message,
+            [{ text: "OK", onPress: () => {} }]
+          );
         } else if (err.status === 422) {
           setError("El formato del email no es válido");
         } else {
