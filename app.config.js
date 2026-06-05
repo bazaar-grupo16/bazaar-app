@@ -13,6 +13,7 @@ export default {
     },
     android: {
       package: "com.bazaar.app",
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
       intentFilters: [
         {
           action: "VIEW",
@@ -38,6 +39,16 @@ export default {
       },
     },
     owner: "bazaar-grupo16",
-    plugins: ["expo-secure-store"],
+    plugins: [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#ff6900",
+          defaultChannel: "default",
+        },
+      ],
+    ],
   },
 };

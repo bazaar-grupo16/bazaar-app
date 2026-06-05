@@ -33,6 +33,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       ProductDetail: "products/:productId",
       OrderPolling: "order-polling/:orderId",
       OrderResult: "order-result/:orderId",
+      OrderDetail: "orders/:orderId",
     },
   },
 };

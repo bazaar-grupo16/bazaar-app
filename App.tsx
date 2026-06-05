@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 import { linking, RootNavigator } from "@/navigation";
 import { bootstrapAuthSession } from "@/shared/auth";
+import { PushNotificationBootstrap } from "@/shared/notifications/PushNotificationBootstrap";
 
 export default function App() {
   const [queryClient] = useState(() => new QueryClient());
@@ -42,6 +43,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
+        <PushNotificationBootstrap />
         <NavigationContainer linking={linking}>
           <StatusBar style="auto" />
           <RootNavigator />

@@ -79,6 +79,28 @@ entities/
 
 Cada microservicio tiene su propia base URL configurada vía variables de entorno. TanStack Query se encarga del caché, los reintentos y los estados de carga/error de forma declarativa.
 
+## Notificaciones
+
+La app consume `notifications-service` para mostrar historial, contador de no
+leídas y estado de lectura:
+
+| Vista/acción | Endpoint |
+|---|---|
+| Campanita con badge | `GET /notifications/me/unread-count` |
+| Pantalla de avisos | `GET /notifications/me` |
+| Marcar una como leída | `PATCH /notifications/{id}/read` |
+| Marcar todas como leídas | `PATCH /notifications/read-all` |
+| Registrar dispositivo | `POST /notifications/push-tokens` |
+
+El registro de push usa `expo-notifications` y `expo-device`. Cuando el usuario
+está autenticado, la app pide permisos, obtiene un Expo Push Token y lo registra
+en `notifications-service`. Si llega una notificación en foreground, se refresca
+el contador/listado. Si el usuario toca una push notification, se abre el
+`deep_link` enviado por backend.
+
+Para validación final de push real se recomienda usar una development build/EAS,
+ya que Expo Go no siempre representa las condiciones finales de notificaciones
+push en Android/iOS.
 
 ## Cómo correr la app
 
