@@ -37,7 +37,13 @@ function hasNotificationPermission(permissions: ExpoPermissionStatus) {
 }
 
 async function registerForPushNotificationsAsync() {
+  console.log("[Push] Starting registration", {
+    isDevice: Device.isDevice,
+    platform: Platform.OS,
+  });
+
   if (!Device.isDevice) {
+    console.log("[Push] Skipping registration because this is not a physical device");
     return null;
   }
 
@@ -49,17 +55,23 @@ async function registerForPushNotificationsAsync() {
   }
 
   const currentPermissions = await Notifications.getPermissionsAsync();
+  console.log("[Push] Current permissions", currentPermissions);
   let granted = hasNotificationPermission(currentPermissions as ExpoPermissionStatus);
   if (!granted) {
     const requestedPermissions = await Notifications.requestPermissionsAsync();
+    console.log("[Push] Requested permissions", requestedPermissions);
     granted = hasNotificationPermission(requestedPermissions as ExpoPermissionStatus);
   }
   if (!granted) {
+    console.log("[Push] Skipping registration because notification permission is not granted");
     return null;
   }
 
   const token = await Notifications.getExpoPushTokenAsync({
     projectId: EAS_PROJECT_ID,
+  });
+  console.log("[Push] Expo push token obtained", {
+    tokenPreview: `${token.data.slice(0, 24)}...`,
   });
   return token.data;
 }
@@ -69,6 +81,10 @@ export function PushNotificationBootstrap() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    console.log("[Push] Auth token changed", {
+      hasAccessToken: Boolean(accessToken),
+    });
+
     if (!accessToken) return;
 
     let cancelled = false;
@@ -80,10 +96,16 @@ export function PushNotificationBootstrap() {
           platform: Platform.OS,
         });
       })
+      .then((response) => {
+        if (!response) return;
+        console.log("[Push] Push token registered", {
+          id: response.id,
+          platform: response.platform,
+          enabled: response.enabled,
+        });
+      })
       .catch((error) => {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("[Push] Could not register push token", error);
-        }
+        console.warn("[Push] Could not register push token", error);
       });
 
     return () => {

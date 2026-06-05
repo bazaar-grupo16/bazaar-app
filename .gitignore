@@ -13,6 +13,8 @@ ios/
 .env
 .env.local
 .env.*.local
+google-services.json
+firebase-service-account*.json
 npm-debug.*
 yarn-debug.*
 yarn-error.*

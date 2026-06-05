@@ -13,6 +13,7 @@ export default {
     },
     android: {
       package: "com.bazaar.app",
+      googleServicesFile: "./google-services.json",
       intentFilters: [
         {
           action: "VIEW",
