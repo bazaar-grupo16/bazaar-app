@@ -27,6 +27,7 @@ import { colors, radius, spacing, typography } from "@/shared/styles";
 import { PRODUCT_CATEGORIES } from "@/shared/config/categories";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/shared/auth";
+import { useUnreadNotificationCount } from "@/entities/notification";
 
 type HomeNavProp = NativeStackNavigationProp<RootStackParamList, "Tabs">;
 
@@ -105,6 +106,8 @@ export function HomePage() {
 
   // Notifications panel
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { data: unreadData } = useUnreadNotificationCount();
+  const unreadCount = unreadData?.unread_count ?? 0;
 
   // Favorites (wishlist API)
   const userId = useSessionUserId();
@@ -353,6 +356,11 @@ export function HomePage() {
 
           <TouchableOpacity style={styles.bellButton} activeOpacity={0.7} onPress={() => setNotificationsOpen(true)}>
             <Ionicons name="notifications-outline" size={22} color={colors.gray[700]} />
+            {unreadCount > 0 && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -678,6 +686,19 @@ const styles = StyleSheet.create({
     width: 42, height: 42, borderRadius: 21,
     backgroundColor: colors.gray[100],
     alignItems: "center", justifyContent: "center",
+  },
+  bellBadge: {
+    position: "absolute", top: 4, right: 4,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: colors.brand[500],
+    alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  bellBadgeText: {
+    color: colors.white,
+    fontSize: 9,
+    fontWeight: typography.weight.bold,
+    lineHeight: 12,
   },
 
   /* Search */
