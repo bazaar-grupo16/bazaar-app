@@ -19,9 +19,22 @@ import { FormButton } from "@/shared/ui/FormButton";
 import { Ionicons } from '@expo/vector-icons';
 
 import * as Google from "expo-auth-session/providers/google";
+import { makeRedirectUri } from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
+
+// Google Android OAuth clients only accept the reverse-client-ID scheme as a redirect.
+// This MUST match the intent filter baked into AndroidManifest.xml (see app.config.js).
+const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+const googleRedirectUri = googleAndroidClientId
+  ? makeRedirectUri({
+      native: `com.googleusercontent.apps.${googleAndroidClientId.replace(
+        ".apps.googleusercontent.com",
+        ""
+      )}:/oauth2redirect`,
+    })
+  : undefined;
 
 import { loginUser, registerUser, sendForgotPasswordEmail, verifyResetCode, resetPassword, loginWithGoogle } from "@/entities/user";
 import { ApiError } from "@/shared/api";
@@ -65,6 +78,7 @@ export function LoginPage() {
 
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    redirectUri: googleRedirectUri,
   });
 
   useEffect(() => {
