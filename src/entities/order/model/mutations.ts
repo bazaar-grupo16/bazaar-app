@@ -16,19 +16,6 @@ export function useCreateOrder() {
   });
 }
 
-export function useUpdateOrderStatus(orderId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ status, trackingCode }: { status: string; trackingCode?: string }) =>
-      updateOrderStatus(orderId, status, trackingCode),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
-      void queryClient.invalidateQueries({ queryKey: orderKeys.sales() });
-    },
-  });
-}
-
 export function useCancelOrder(orderId: string) {
   const queryClient = useQueryClient();
 
