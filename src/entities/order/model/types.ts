@@ -53,7 +53,7 @@ export type OrderResponse = {
   order_id: string;
   user_id: string;
   status: OrderStatus;
-  aggregated_status: OrderItemStatus | null;
+  aggregated_status: OrderStatus;
   shipping_address: Record<string, unknown>;
   total_amount: number;
   tracking_code?: string | null;
