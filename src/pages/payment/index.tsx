@@ -33,7 +33,7 @@ function MercadoPagoPaymentPage() {
       return;
     }
 
-    if (order.status === "CONFIRMADA" || order.status === "PAGO_RECHAZADO") {
+    if (order.aggregated_status === "CONFIRMADA" || order.aggregated_status === "PAGO_RECHAZADO") {
       navigation.replace("OrderResult", { orderId });
       return;
     }
