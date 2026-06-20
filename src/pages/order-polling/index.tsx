@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute, useIsFocused, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation";
 import { useOrder, useCheckoutStore } from "@/entities/order";
@@ -16,6 +16,7 @@ export function OrderPollingPage() {
   const route = useRoute<OrderPollingRouteProp>();
   const { orderId } = route.params;
   const clearIdempotencyKey = useCheckoutStore((s) => s.clearIdempotencyKey);
+  const isFocused = useIsFocused();
 
   // Fallback: if orderId is missing (shouldn't happen with proper deep link), show error
   if (!orderId) {
@@ -52,10 +53,10 @@ export function OrderPollingPage() {
   );
 
   useEffect(() => {
-    if (order && order.status !== "PENDIENTE_DE_PAGO") {
+    if (isFocused && order && (order.aggregated_status == "CONFIRMADA" || order.aggregated_status == "PAGO_RECHAZADO")) {
       navigation.replace("OrderResult", { orderId });
     }
-  }, [order, navigation, orderId]);
+  }, [order, navigation, orderId, isFocused]);
 
   return (
     <View style={[styles.fill, { paddingTop: insets.top + spacing.xl }]}>
