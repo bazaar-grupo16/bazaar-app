@@ -7,6 +7,7 @@ import { PaymentPage } from "@/pages/payment";
 import { OrderPollingPage } from "@/pages/order-polling";
 import { OrderResultPage } from "@/pages/order-result";
 import { OrderDetailPage } from "@/pages/order-detail";
+import { PinUnlockPage } from "@/pages/pin-unlock";
 import { TabsNavigator } from "./TabsNavigator";
 import type { LinkingOptions } from "@react-navigation/native";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
@@ -43,6 +44,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function RootNavigator() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrating = useAuthStore((state) => state.isHydrating);
+  const isPinUnlockRequired = useAuthStore((state) => state.isPinUnlockRequired);
 
   if (isHydrating) {
     return (
@@ -50,6 +52,10 @@ export function RootNavigator() {
         <ActivityIndicator size="large" color={colors.brand[500]} />
       </View>
     );
+  }
+
+  if (isPinUnlockRequired) {
+    return <PinUnlockPage />;
   }
 
   return (
