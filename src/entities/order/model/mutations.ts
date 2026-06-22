@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { cancelOrder, cancelOrderItem, cancelSaleItem, confirmItemDelivery, createOrder, updateOrderStatus, updateSaleItemStatus } from "../api/order";
+import { cancelOrder, cancelOrderItem, cancelSaleItem, confirmItemDelivery, createOrder, updateSaleItemStatus } from "../api/order";
 import type { CreateOrderRequest } from "./types";
 import { orderKeys } from "./queries";
 
