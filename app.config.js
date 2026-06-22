@@ -62,7 +62,6 @@ export default {
           defaultChannel: "default",
         },
       ],
-      "./plugins/withBazaarKeystore",
     ],
   },
 };
