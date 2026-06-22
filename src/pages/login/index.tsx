@@ -446,6 +446,17 @@ export function LoginPage() {
             </View>
           )}
 
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>
+              {tab === "login" ? "¿No tenés cuenta? " : "¿Ya tenés cuenta? "}
+            </Text>
+            <TouchableOpacity onPress={() => { setTab(tab === "login" ? "register" : "login"); setError(""); }}>
+              <Text style={styles.footerLink}>
+                {tab === "login" ? "Registrate gratis" : "Iniciá sesión"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>o continuá con</Text>
@@ -459,19 +470,8 @@ export function LoginPage() {
             activeOpacity={0.8}
           >
             <Ionicons name="logo-google" size={20} color={colors.gray[700]} />
-            <Text style={styles.googleButtonText}>Continuar con Google</Text>
+            <Text style={styles.googleButtonText}>Iniciar sesión con Google</Text>
           </TouchableOpacity>
-
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>
-              {tab === "login" ? "¿No tenés cuenta? " : "¿Ya tenés cuenta? "}
-            </Text>
-            <TouchableOpacity onPress={() => { setTab(tab === "login" ? "register" : "login"); setError(""); }}>
-              <Text style={styles.footerLink}>
-                {tab === "login" ? "Registrate gratis" : "Iniciá sesión"}
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           <TouchableOpacity
             style={styles.guestButton}
