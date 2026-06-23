@@ -12,6 +12,7 @@ export type CartItem = {
   quantity: number;
   stock: number;
   status: CartItemStatus;
+  isBlocked: boolean;
   addedAt: string;
 };
 
