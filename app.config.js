@@ -1,9 +1,13 @@
 const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 if (!androidClientId) {
-  throw new Error("EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID is required to register the Google OAuth redirect scheme");
+  console.warn(
+    "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID not set locally — OAuth scheme omitted from local config. " +
+    "It will be injected server-side during EAS build; run `eas env:pull <env>` for local builds."
+  );
 }
-// Google redirects OAuth back via the reverse-DNS form of the client ID.
-const googleRedirectScheme = `com.googleusercontent.apps.${androidClientId.replace(".apps.googleusercontent.com", "")}`;
+const googleRedirectScheme = androidClientId
+  ? `com.googleusercontent.apps.${androidClientId.replace(".apps.googleusercontent.com", "")}`
+  : null;
 
 export default {
   expo: {
