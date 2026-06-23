@@ -1,3 +1,10 @@
+const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+if (!androidClientId) {
+  throw new Error("EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID is required to register the Google OAuth redirect scheme");
+}
+// Google redirects OAuth back via the reverse-DNS form of the client ID.
+const googleRedirectScheme = `com.googleusercontent.apps.${androidClientId.replace(".apps.googleusercontent.com", "")}`;
+
 export default {
   expo: {
     name: "Bazaar",
@@ -25,6 +32,11 @@ export default {
           ],
           category: ["BROWSABLE", "DEFAULT"],
         },
+        {
+          action: "VIEW",
+          data: [{ scheme: googleRedirectScheme }],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
       ],
     },
     web: {
@@ -41,6 +53,7 @@ export default {
     owner: "bazaar-grupo16",
     plugins: [
       "expo-secure-store",
+      "expo-web-browser",
       [
         "expo-notifications",
         {

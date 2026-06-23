@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,25 @@ import { colors, typography, spacing } from "@/shared/styles/theme";
 import { FormButton } from "@/shared/ui/FormButton";
 import { Ionicons } from '@expo/vector-icons';
 
-import { loginUser, registerUser,sendForgotPasswordEmail, verifyResetCode, resetPassword} from "@/entities/user";
+import * as Google from "expo-auth-session/providers/google";
+import { makeRedirectUri } from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
+
+// Google Android OAuth clients only accept the reverse-client-ID scheme as a redirect.
+// This MUST match the intent filter baked into AndroidManifest.xml (see app.config.js).
+const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+const googleRedirectUri = googleAndroidClientId
+  ? makeRedirectUri({
+      native: `com.googleusercontent.apps.${googleAndroidClientId.replace(
+        ".apps.googleusercontent.com",
+        ""
+      )}:/oauth2redirect`,
+    })
+  : undefined;
+
+import { loginUser, registerUser, sendForgotPasswordEmail, verifyResetCode, resetPassword, loginWithGoogle } from "@/entities/user";
 import { ApiError } from "@/shared/api";
 import { Button } from "@/shared/ui/Button";
 
@@ -57,6 +75,35 @@ export function LoginPage() {
   const [verificationCode, setVerificationCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
+
+  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    redirectUri: googleRedirectUri,
+  });
+
+  useEffect(() => {
+    if (googleResponse?.type === "success") {
+      const token = googleResponse.authentication?.idToken;
+      if (token) handleGoogleLoginSuccess(token);
+    }
+  }, [googleResponse]);
+
+  async function handleGoogleLoginSuccess(googleAccessToken: string) {
+    try {
+      setError("");
+      setIsLoading(true);
+      const response = await loginWithGoogle(googleAccessToken);
+      await persistAuthSession(response);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(`Error al iniciar sesión con Google (${err.status})`);
+      } else {
+        setError("Error de conexión. Revisá que el backend esté corriendo.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   // backend-login
   async function handleLogin() {
@@ -410,6 +457,22 @@ export function LoginPage() {
             </TouchableOpacity>
           </View>
 
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>o continuá con</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={() => googlePromptAsync()}
+            disabled={!googleRequest || isLoading}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="logo-google" size={20} color={colors.gray[700]} />
+            <Text style={styles.googleButtonText}>Iniciar sesión con Google</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.guestButton}
             onPress={() => navigation.navigate("Tabs")} 
@@ -760,5 +823,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: typography.weight.semibold,
     textDecorationLine: "underline",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.gray[100],
+  },
+  dividerText: {
+    marginHorizontal: spacing.sm,
+    fontSize: 12,
+    color: colors.gray[400],
+    fontWeight: typography.weight.regular,
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    backgroundColor: colors.white,
+  },
+  googleButtonText: {
+    fontSize: typography.size.md,
+    color: colors.gray[700],
+    fontWeight: typography.weight.semibold,
   },
 });
