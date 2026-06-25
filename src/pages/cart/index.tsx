@@ -33,6 +33,9 @@ export function CartPage() {
 
   const cart = data?.data;
   const items = cart?.items ?? [];
+  const hasBlockedOrInactiveItems = items.some(
+    (item) => item.isBlocked || item.status === "inactive"
+  );
 
   const mutatingProductIds = new Set<string>();
   if (removeMutation.isPending && typeof removeMutation.variables === "string") {
@@ -162,6 +165,7 @@ export function CartPage() {
             clearIdempotencyKey();
           }}
           isClearing={clearMutation.isPending}
+          hasBlockedOrInactiveItems={hasBlockedOrInactiveItems}
         />
       )}
     </View>

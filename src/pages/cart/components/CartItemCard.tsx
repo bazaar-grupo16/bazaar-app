@@ -20,10 +20,10 @@ export function CartItemCard({
 }: CartItemCardProps) {
   const unitPrice = parseFloat(item.unitPrice.value);
   const lineTotal = (unitPrice * item.quantity).toFixed(2);
-  const isBlocked = item.isBlocked;
   const isInactive = item.status === "inactive";
   const isOutOfStock = item.status === "out_of_stock";
-  const hasIssue = isBlocked || isInactive || isOutOfStock;
+  const isBlocked = item.isBlocked;
+  const hasIssue = isInactive || isOutOfStock || isBlocked;
   const initial = item.title.charAt(0).toUpperCase();
 
   return (
@@ -46,17 +46,13 @@ export function CartItemCard({
           {hasIssue && (
             <View style={[
               styles.statusBadge,
-              isBlocked ? styles.blockedBadge :
-              isInactive ? styles.inactiveBadge : 
-              styles.outOfStockBadge
+              isBlocked ? styles.blockedBadge : (isInactive ? styles.inactiveBadge : styles.outOfStockBadge)
             ]}>
               <Text style={[
                 styles.statusBadgeText,
-                isBlocked ? styles.blockedBadgeText :
-                isInactive ? styles.inactiveBadgeText : 
-                styles.outOfStockBadgeText
+                isBlocked ? styles.blockedBadgeText : (isInactive ? styles.inactiveBadgeText : styles.outOfStockBadgeText)
               ]}>
-                {isBlocked ? "No disponible" : isInactive ? "No disponible" : "Sin stock"}
+                {isBlocked ? "Bloqueado" : (isInactive ? "No disponible" : "Sin stock")}
               </Text>
             </View>
           )}
@@ -182,6 +178,9 @@ const styles = StyleSheet.create({
   inactiveBadge: {
     backgroundColor: colors.gray[900],
   },
+  blockedBadge: {
+    backgroundColor: colors.error,
+  },
   statusBadgeText: {
     fontSize: 12,
     fontWeight: typography.weight.bold,
@@ -191,9 +190,6 @@ const styles = StyleSheet.create({
   },
   inactiveBadgeText: {
     color: colors.white,
-  },
-  blockedBadge: {
-    backgroundColor: colors.error,
   },
   blockedBadgeText: {
     color: colors.white,
