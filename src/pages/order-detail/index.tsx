@@ -4,7 +4,7 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import type { RootStackParamList } from "@/navigation";
-import { useOrder, useSaleDetail, useCancelOrder, useCancelOrderItem, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus, getStatusColor } from "@/entities/order";
+import { useOrder, useSaleDetail, useCancelOrder, useCancelOrderItem, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus, getStatusColor, useCheckoutStore } from "@/entities/order";
 import type { OrderItemStatus, OrderStatus } from "@/entities/order";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Button } from "@/shared/ui";
@@ -57,7 +57,7 @@ export function OrderDetailPage() {
     return () => backHandler.remove();
   }, [navigation]);
 
-  const buyerQuery = useOrder(fromSales ? undefined : orderId, false);
+  const buyerQuery = useOrder(fromSales ? undefined : orderId, 5000, true);
   const sellerQuery = useSaleDetail(fromSales ? orderId : undefined);
   const { data: order, isLoading } = fromSales ? sellerQuery : buyerQuery;
   const { mutate: cancelOrderMutate, isPending: isCancelling } = useCancelOrder(orderId);
@@ -77,7 +77,20 @@ export function OrderDetailPage() {
       "¿Estás seguro de que querés cancelar esta orden?",
       [
         { text: "No, volver", style: "cancel" },
-        { text: "Sí, cancelar", style: "destructive", onPress: () => cancelOrderMutate() },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: () => {
+            const wasPendingPayment = order?.status === "PENDIENTE_DE_PAGO";
+            cancelOrderMutate(undefined, {
+              onSuccess: () => {
+                if (wasPendingPayment) {
+                  useCheckoutStore.getState().clearIdempotencyKey();
+                }
+              },
+            });
+          },
+        },
       ],
     );
   };

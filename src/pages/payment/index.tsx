@@ -10,7 +10,7 @@ import { useDebugPayment } from "@/entities/payment";
 import { Button } from "@/shared/ui";
 import { colors, spacing, typography } from "@/shared/styles";
 
-const DEBUG = false;
+const DEBUG = true;
 
 type PaymentRouteProp = RouteProp<RootStackParamList, "Payment">;
 
