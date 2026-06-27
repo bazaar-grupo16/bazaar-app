@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -25,6 +25,12 @@ export function CartPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isGuest = !useAuthStore((s) => s.accessToken);
   const { data, error, isLoading, isRefetching, refetch } = useCart();
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
   const removeMutation = useRemoveCartItem();
   const clearMutation = useClearCart();
   const incrementMutation = useIncrementCartItem();
@@ -152,8 +158,8 @@ export function CartPage() {
         data={items}
         keyExtractor={(item) => String(item.productId)}
         renderItem={renderItem}
-        refreshing={isRefetching}
-        onRefresh={() => void refetch()}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
       />
 
       {cart && (

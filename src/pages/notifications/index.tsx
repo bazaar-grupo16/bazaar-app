@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -43,6 +43,12 @@ export function NotificationsPage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isGuest = !useAuthStore((s) => s.accessToken);
   const { data, isLoading, isRefetching, refetch, isError } = useNotifications(50, 0);
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
   const markRead = useMarkNotificationAsRead();
   const markAllRead = useMarkAllNotificationsAsRead();
 
@@ -126,8 +132,8 @@ export function NotificationsPage() {
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={() => void refetch()}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
               tintColor={colors.brand[500]}
             />
           }

@@ -188,6 +188,12 @@ export function OrdersPage() {
   const isLoading = section === "compras" ? purchaseLoading : salesLoading;
   const isRefetching = section === "compras" ? purchaseRefetching : salesRefetching;
   const refetch = section === "compras" ? refetchPurchases : refetchSales;
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
   return (
     <View style={styles.fill}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -237,8 +243,8 @@ export function OrdersPage() {
             </View>
           }
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.md, flexGrow: 1 }]}
-          refreshing={isRefetching}
-          onRefresh={() => void refetch()}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
         />
       ) : (
         <FlatList
@@ -260,8 +266,8 @@ export function OrdersPage() {
             </View>
           }
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.md, flexGrow: 1 }]}
-          refreshing={isRefetching}
-          onRefresh={() => void refetch()}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
         />
       )}
     </View>
