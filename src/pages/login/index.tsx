@@ -26,15 +26,16 @@ WebBrowser.maybeCompleteAuthSession();
 
 // Google Android OAuth clients only accept the reverse-client-ID scheme as a redirect.
 // This MUST match the intent filter baked into AndroidManifest.xml (see app.config.js).
-const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
-const googleRedirectUri = googleAndroidClientId
-  ? makeRedirectUri({
-      native: `com.googleusercontent.apps.${googleAndroidClientId.replace(
-        ".apps.googleusercontent.com",
-        ""
-      )}:/oauth2redirect`,
-    })
-  : undefined;
+const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || "dummy-android-client-id.apps.googleusercontent.com";
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "dummy-ios-client-id.apps.googleusercontent.com";
+const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "dummy-web-client-id.apps.googleusercontent.com";
+
+const googleRedirectUri = makeRedirectUri({
+  native: `com.googleusercontent.apps.${googleAndroidClientId.replace(
+    ".apps.googleusercontent.com",
+    ""
+  )}:/oauth2redirect`,
+});
 
 import { loginUser, registerUser, sendForgotPasswordEmail, verifyResetCode, resetPassword, loginWithGoogle } from "@/entities/user";
 import { ApiError } from "@/shared/api";
@@ -77,7 +78,9 @@ export function LoginPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
 
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    androidClientId: googleAndroidClientId,
+    iosClientId: googleIosClientId,
+    webClientId: googleWebClientId,
     redirectUri: googleRedirectUri,
   });
 
