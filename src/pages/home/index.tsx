@@ -1,7 +1,7 @@
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NotificationsPanel } from "./NotificationsPanel";
 import {
   ActivityIndicator,
@@ -25,7 +25,7 @@ import { ApiError } from "@/shared/api";
 import type { RootStackParamList } from "@/navigation";
 import { colors, radius, spacing, typography } from "@/shared/styles";
 import { PRODUCT_CATEGORIES } from "@/shared/config/categories";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/shared/auth";
 import { useUnreadNotificationCount } from "@/entities/notification";
 
@@ -71,6 +71,13 @@ const SORT_OPTIONS: Array<{ key: SortOption; label: string; sortBy: SortField; o
 export function HomePage() {
   const navigation = useNavigation<HomeNavProp>();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+
+  useFocusEffect(
+    useCallback(() => {
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+    }, [queryClient])
+  );
 
   // Profile info
   const isGuest = !useAuthStore((state) => state.accessToken);
