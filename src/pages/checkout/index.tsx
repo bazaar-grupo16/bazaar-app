@@ -5,6 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/navigation";
 import * as Crypto from "expo-crypto";
+import { Ionicons } from "@expo/vector-icons";
 import { useCreateOrder, useCheckoutStore } from "@/entities/order";
 import { Button } from "@/shared/ui";
 import { colors, radius, spacing, typography } from "@/shared/styles";
@@ -15,6 +16,7 @@ export function CheckoutPage() {
   const { mutate: createOrder, isPending } = useCreateOrder();
   const { lastAddress, setLastAddress, currentIdempotencyKey, clearIdempotencyKey } = useCheckoutStore();
 
+  const [hasStockError, setHasStockError] = useState(false);
   const [street, setStreet] = useState(lastAddress?.street ?? "");
   const [city, setCity] = useState(lastAddress?.city ?? "");
   const [state, setState] = useState(lastAddress?.state ?? "");
@@ -26,6 +28,8 @@ export function CheckoutPage() {
       Alert.alert("Campos obligatorios", "Por favor, completa todos los campos de la dirección de envío.");
       return;
     }
+
+    setHasStockError(false);
 
     // Use existing key or generate a new one if it's the first attempt
     const idempotencyKey = currentIdempotencyKey || Crypto.randomUUID();
@@ -74,10 +78,20 @@ export function CheckoutPage() {
           navigation.replace("Payment", { orderId: data.order_id, initPoint: data.init_point });
         },
         onError: (error) => {
-          Alert.alert("Error al procesar la orden", error.message || "Ocurrió un error inesperado.");
+          const errorMessage = error.message || "";
+          if (errorMessage.toLowerCase().includes("insufficient stock")) {
+            setHasStockError(true);
+          } else {
+            Alert.alert("Error al procesar la orden", errorMessage || "Ocurrió un error inesperado.");
+          }
         },
       }
     );
+  };
+
+  const handleGoToCart = () => {
+    clearIdempotencyKey();
+    navigation.navigate("Tabs", { screen: "Cart" } as any);
   };
 
   return (
@@ -159,13 +173,27 @@ export function CheckoutPage() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
-        <Button
-          onPress={handleCheckout}
-          loading={isPending}
-          disabled={isPending}
-        >
-          Confirmar y Pagar
-        </Button>
+        {hasStockError ? (
+          <View style={styles.errorContainer}>
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle-outline" size={20} color={colors.error} style={styles.errorIcon} />
+              <Text style={styles.errorText}>
+                Ya no queda stock de alguno de los items del carrito. Por favor, vuelve al carrito para verificar.
+              </Text>
+            </View>
+            <Button onPress={handleGoToCart} variant="primary">
+              Volver al Carrito
+            </Button>
+          </View>
+        ) : (
+          <Button
+            onPress={handleCheckout}
+            loading={isPending}
+            disabled={isPending}
+          >
+            Confirmar y Pagar
+          </Button>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -223,6 +251,29 @@ const styles = StyleSheet.create({
   },
   halfWidth: {
     flex: 1,
+  },
+  errorContainer: {
+    gap: spacing.md,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  errorIcon: {
+    alignSelf: "flex-start",
+    marginTop: 2,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: typography.size.sm,
+    color: "#B91C1C",
+    lineHeight: 18,
   },
   footer: {
     backgroundColor: colors.white,
