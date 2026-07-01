@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+
 const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 if (!androidClientId) {
   console.warn(
@@ -5,9 +8,13 @@ if (!androidClientId) {
     "It will be injected server-side during EAS build; run `eas env:pull <env>` for local builds."
   );
 }
+
 const googleRedirectScheme = androidClientId
   ? `com.googleusercontent.apps.${androidClientId.replace(".apps.googleusercontent.com", "")}`
   : null;
+
+const googleServicesFilePath = process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json";
+const hasGoogleServicesFile = fs.existsSync(path.resolve(__dirname, googleServicesFilePath));
 
 export default {
   expo: {
@@ -24,7 +31,7 @@ export default {
     },
     android: {
       package: "com.bazaar.app",
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? "./google-services.json",
+      ...(hasGoogleServicesFile ? { googleServicesFile: googleServicesFilePath } : {}),
       intentFilters: [
         {
           action: "VIEW",
@@ -36,11 +43,15 @@ export default {
           ],
           category: ["BROWSABLE", "DEFAULT"],
         },
-        {
-          action: "VIEW",
-          data: [{ scheme: googleRedirectScheme }],
-          category: ["BROWSABLE", "DEFAULT"],
-        },
+        ...(googleRedirectScheme
+          ? [
+              {
+                action: "VIEW",
+                data: [{ scheme: googleRedirectScheme }],
+                category: ["BROWSABLE", "DEFAULT"],
+              },
+            ]
+          : []),
       ],
     },
     web: {
@@ -50,6 +61,9 @@ export default {
     scheme: "bazaar",
     extra: {
       apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL,
+      googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+      googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
       eas: {
         projectId: "e732a3a7-c154-452b-9582-f87ac91ba8c9",
       },

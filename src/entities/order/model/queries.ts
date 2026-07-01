@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getOrder, getOrdersHistory, getSalesHistory, getSaleDetail } from "../api/order";
 import { useSessionUserId } from "@/shared/auth";
 import type { OrderResponse } from "./types";
+import { useEffect } from "react";
+import { useCheckoutStore } from "./store";
 
 export const orderKeys = {
   all: ["orders"] as const,
@@ -14,10 +16,11 @@ export const orderKeys = {
 
 export function useOrder(
   orderId: string | undefined, 
-  refetchInterval?: number | false | ((query: any) => number | false)
+  refetchInterval?: number | false | ((query: any) => number | false),
+  skipIdempotencyClear: boolean = false
 ) {
   const userId = useSessionUserId();
-  return useQuery<OrderResponse, Error, OrderResponse>({
+  const query = useQuery<OrderResponse, Error, OrderResponse>({
     queryKey: orderId ? orderKeys.detail(orderId) : ([] as const),
     queryFn: () => {
       if (!orderId) throw new Error("No order ID provided");
@@ -26,6 +29,16 @@ export function useOrder(
     enabled: !!userId && !!orderId,
     ...(refetchInterval !== undefined && { refetchInterval }),
   });
+
+  const orderStatus = query.data?.status;
+
+  useEffect(() => {
+    if (!skipIdempotencyClear && orderStatus === "PAGO_RECHAZADO") {
+      useCheckoutStore.getState().clearIdempotencyKey();
+    }
+  }, [orderStatus, skipIdempotencyClear]);
+
+  return query;
 }
 
 export function useOrdersHistory(page: number = 1, size: number = 20, status?: string) {
@@ -47,6 +60,7 @@ export function useSaleDetail(orderId: string | undefined) {
       return getSaleDetail(orderId);
     },
     enabled: !!userId && !!orderId,
+    refetchInterval: 5000,
   });
 }
 

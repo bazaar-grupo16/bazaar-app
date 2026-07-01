@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -53,6 +53,12 @@ export function NotificationsPanel({ visible, onClose }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const { data, isLoading, isRefetching, refetch, isError } = useNotifications(50, 0);
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
   const markRead = useMarkNotificationAsRead();
   const markAllRead = useMarkAllNotificationsAsRead();
 
@@ -167,8 +173,8 @@ export function NotificationsPanel({ visible, onClose }: Props) {
               contentContainerStyle={styles.listContent}
               refreshControl={
                 <RefreshControl
-                  refreshing={isRefetching}
-                  onRefresh={() => void refetch()}
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
                   tintColor={colors.brand[500]}
                 />
               }

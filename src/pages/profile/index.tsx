@@ -27,8 +27,8 @@ import { EditProfileModal } from "./components/EditProfileModal";
 import { PinSetupModal } from "./components/PinSetupModal";
 
 const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: string }> = {
-  activas:    { title: "Sin publicaciones activas",    subtitle: "Publicá algo y empezá a vender" },
-  inactivas:  { title: "Sin publicaciones inactivas",  subtitle: "Podés desactivar publicaciones desde el editor" },
+  activas: { title: "Sin publicaciones activas", subtitle: "Publicá algo y empezá a vender" },
+  inactivas: { title: "Sin publicaciones inactivas", subtitle: "Podés desactivar publicaciones desde el editor" },
   "sin-stock": { title: "Sin publicaciones sin stock", subtitle: "Los productos con stock 0 aparecen aquí" },
 };
 
@@ -80,19 +80,19 @@ export function ProfilePage() {
   const { data: ordersData } = useOrdersHistory(1, 1, "CONFIRMADA");
   const allListings = data?.data ?? [];
 
-  const activeListings    = allListings.filter((p) => p.status === "active");
-  const inactiveListings  = allListings.filter((p) => p.status === "inactive");
+  const activeListings = allListings.filter((p) => p.status === "active");
+  const inactiveListings = allListings.filter((p) => p.status === "inactive");
   const outOfStockListings = allListings.filter((p) => p.status === "out_of_stock");
 
   const filteredListings =
-    subTab === "activas"    ? activeListings :
-    subTab === "inactivas"  ? inactiveListings :
-    outOfStockListings;
+    subTab === "activas" ? activeListings :
+      subTab === "inactivas" ? inactiveListings :
+        outOfStockListings;
 
   const counts = {
-    activas:  activeListings.length,
+    activas: activeListings.length,
     inactivas: inactiveListings.length,
-    sinStock:  outOfStockListings.length,
+    sinStock: outOfStockListings.length,
   };
 
   const salesCount = salesCountData?.total ?? 0;
@@ -181,7 +181,7 @@ export function ProfilePage() {
               ) : (
                 <ProductGrid
                   items={filteredListings}
-                  onPreview={handlePreview}
+                  onPreview={subTab === "inactivas" ? handleEdit : handlePreview}
                   onEdit={handleEdit}
                 />
               )}
@@ -205,7 +205,7 @@ export function ProfilePage() {
         profile={userProfile}
         onClose={() => setEditModalOpen(false)}
         onSaveSuccess={(updatedProfile) => {
-          setUserProfile(updatedProfile); 
+          setUserProfile(updatedProfile);
         }}
       />
       <PinSetupModal
