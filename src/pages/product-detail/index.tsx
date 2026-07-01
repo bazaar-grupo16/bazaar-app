@@ -76,7 +76,7 @@ export function ProductDetailPage() {
         </View>
         <View style={styles.centeredContainer}>
           <Ionicons name="ban-outline" size={48} color={colors.error} />
-          <Text style={styles.errorTitle}>Producto bloqueado</Text>
+          <Text style={styles.errorTitle}>Producto no disponible</Text>
           <Text style={styles.helperText}>Un administrador bloqueó esta publicación.</Text>
           <Button onPress={() => navigation.goBack()}>Volver al catálogo</Button>
         </View>

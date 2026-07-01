@@ -124,7 +124,7 @@ function WishlistItemCard({
         <View style={styles.badgeRow}>
           {item.is_blocked ? (
             <View style={[styles.badge, styles.badgeBlocked]}>
-              <Text style={[styles.badgeText, styles.badgeBlockedText]}>Bloqueado</Text>
+              <Text style={[styles.badgeText, styles.badgeBlockedText]}>No disponible</Text>
             </View>
           ) : (
             <>
