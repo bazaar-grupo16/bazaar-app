@@ -122,15 +122,23 @@ function WishlistItemCard({
         )}
 
         <View style={styles.badgeRow}>
-          {!item.catalog_available && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>No disponible</Text>
+          {item.is_blocked ? (
+            <View style={[styles.badge, styles.badgeBlocked]}>
+              <Text style={[styles.badgeText, styles.badgeBlockedText]}>Bloqueado</Text>
             </View>
-          )}
-          {item.catalog_available && !item.in_stock && (
-            <View style={[styles.badge, styles.badgeStock]}>
-              <Text style={styles.badgeText}>Sin stock</Text>
-            </View>
+          ) : (
+            <>
+              {!item.catalog_available && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>No disponible</Text>
+                </View>
+              )}
+              {item.catalog_available && !item.in_stock && (
+                <View style={[styles.badge, styles.badgeStock]}>
+                  <Text style={styles.badgeText}>Sin stock</Text>
+                </View>
+              )}
+            </>
           )}
         </View>
       </View>
@@ -260,10 +268,16 @@ const styles = StyleSheet.create({
   badgeStock: {
     backgroundColor: "#FEF3C7",
   },
+  badgeBlocked: {
+    backgroundColor: colors.error,
+  },
   badgeText: {
     fontSize: 11,
     fontWeight: typography.weight.semibold,
     color: colors.gray[600],
+  },
+  badgeBlockedText: {
+    color: colors.white,
   },
   removeButton: {
     width: 50,

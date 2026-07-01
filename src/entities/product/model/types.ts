@@ -9,6 +9,7 @@ export type Product = {
   category: string;
   sellerId: string;
   status: ProductStatus;
+  adminDisabled?: boolean;
   createdAt: string;
   updatedAt: string;
   images?: string[];

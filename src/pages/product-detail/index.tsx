@@ -68,6 +68,22 @@ export function ProductDetailPage() {
     );
   }
 
+  if (data?.data.adminDisabled) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.topBar}>
+          <GlassButton icon="chevron-back" onPress={() => navigation.goBack()} />
+        </View>
+        <View style={styles.centeredContainer}>
+          <Ionicons name="ban-outline" size={48} color={colors.error} />
+          <Text style={styles.errorTitle}>Producto bloqueado</Text>
+          <Text style={styles.helperText}>Un administrador bloqueó esta publicación.</Text>
+          <Button onPress={() => navigation.goBack()}>Volver al catálogo</Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (data?.data.status === "inactive") {
     return (
       <SafeAreaView style={styles.safeArea}>

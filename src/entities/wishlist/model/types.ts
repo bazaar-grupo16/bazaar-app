@@ -8,6 +8,7 @@ export type WishlistItem = {
   image_url: string | null;
   in_stock: boolean;
   is_available: boolean;
+  is_blocked: boolean | null;
   catalog_available: boolean;
 };
 
