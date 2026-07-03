@@ -18,12 +18,21 @@ const PANEL_W = Math.round(SCREEN_W * 0.82);
 
 interface Props {
   visible: boolean;
+  pinEnabled: boolean;
   onClose: () => void;
   onSignOut: () => void;
   onEditProfile: () => void;
+  onManagePin: () => void;
 }
 
-export function SettingsPanel({ visible, onClose, onSignOut, onEditProfile }: Props) {
+export function SettingsPanel({
+  visible,
+  pinEnabled,
+  onClose,
+  onSignOut,
+  onEditProfile,
+  onManagePin,
+}: Props) {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(PANEL_W)).current;
 
@@ -98,12 +107,21 @@ export function SettingsPanel({ visible, onClose, onSignOut, onEditProfile }: Pr
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.gray[300]} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.row, styles.rowBorder]} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={[styles.row, styles.rowBorder]}
+                activeOpacity={0.7}
+                onPress={() => { handleClose(); setTimeout(onManagePin, 220); }}
+              >
                 <View style={styles.rowLeft}>
                   <View style={styles.rowIcon}>
                     <Ionicons name="shield-checkmark-outline" size={18} color={colors.gray[500]} />
                   </View>
-                  <Text style={styles.rowLabel}>Privacidad y seguridad</Text>
+                  <View>
+                    <Text style={styles.rowLabel}>Privacidad y seguridad</Text>
+                    <Text style={styles.rowHint}>
+                      {pinEnabled ? "PIN activado" : "Configurar acceso por PIN"}
+                    </Text>
+                  </View>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.gray[300]} />
               </TouchableOpacity>
@@ -223,6 +241,11 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.gray[700],
     fontWeight: typography.weight.semibold,
+  },
+  rowHint: {
+    marginTop: 2,
+    fontSize: 12,
+    color: colors.gray[400],
   },
   rowLabelDanger: {
     color: colors.error,

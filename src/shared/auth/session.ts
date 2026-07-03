@@ -5,25 +5,34 @@ import { jwtDecode } from "jwt-decode";
 
 import { publicApi } from "@/shared/api/http";
 import type { TokenCreateResponse } from "@/entities/user/model";
+import {
+  clearPinConfiguration,
+  isPinConfigured,
+  resetPinFailuresForUser,
+  verifyPinAttempt,
+} from "./pin";
 
 const REFRESH_TOKEN_KEY = "bazaar.refreshToken";
 
 interface AuthState {
   accessToken: string | null;
   isHydrating: boolean;
+  isPinUnlockRequired: boolean;
   setAccessToken: (token: string | null) => void;
   setHydrating: (value: boolean) => void;
+  setPinUnlockRequired: (value: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   isHydrating: true,
+  isPinUnlockRequired: false,
   setAccessToken: (token) => set({ accessToken: token }),
   setHydrating: (value) => set({ isHydrating: value }),
+  setPinUnlockRequired: (value) => set({ isPinUnlockRequired: value }),
 }));
 
-export function useSessionUserId(): string | null {
-  const accessToken = useAuthStore((s) => s.accessToken);
+function readUserIdFromToken(accessToken: string | null): string | null {
   if (!accessToken) return null;
   try {
     const decoded = jwtDecode<{ sub?: string; user_id?: string; id?: string }>(accessToken);
@@ -31,6 +40,11 @@ export function useSessionUserId(): string | null {
   } catch (err) {
     return null;
   }
+}
+
+export function useSessionUserId(): string | null {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  return readUserIdFromToken(accessToken);
 }
 
 let refreshPromise: Promise<TokenCreateResponse | null> | null = null;
@@ -69,12 +83,16 @@ export function normalizeTokenResponse(payload: Record<string, unknown>): TokenC
 
 export async function persistAuthSession(tokens: TokenCreateResponse) {
   useAuthStore.getState().setAccessToken(tokens.access_token);
+  useAuthStore.getState().setPinUnlockRequired(false);
   await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, tokens.refresh_token);
+  await resetPinFailuresForUser(readUserIdFromToken(tokens.access_token));
 }
 
 export async function clearAuthSession() {
   useAuthStore.getState().setAccessToken(null);
+  useAuthStore.getState().setPinUnlockRequired(false);
   await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  await clearPinConfiguration();
 }
 
 async function requestTokenRefresh() {
@@ -118,8 +136,36 @@ export async function bootstrapAuthSession() {
   useAuthStore.getState().setHydrating(true);
 
   try {
+    if (await isPinConfigured()) {
+      const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+      if (refreshToken) {
+        useAuthStore.getState().setPinUnlockRequired(true);
+        return;
+      }
+
+      await clearPinConfiguration();
+    }
+
     await refreshAuthSession();
   } finally {
     useAuthStore.getState().setHydrating(false);
   }
+}
+
+export async function unlockAuthSessionWithPin(pin: string) {
+  const pinResult = await verifyPinAttempt(pin);
+  if (!pinResult.ok) return pinResult;
+
+  const refreshedSession = await refreshAuthSession();
+  if (!refreshedSession) {
+    await clearAuthSession();
+    return { ok: false as const, reason: "not_configured" as const };
+  }
+
+  useAuthStore.getState().setPinUnlockRequired(false);
+  return { ok: true as const };
+}
+
+export function skipPinUnlockForCurrentLaunch() {
+  useAuthStore.getState().setPinUnlockRequired(false);
 }

@@ -28,3 +28,10 @@ export async function verifyResetCode(data: { email: string; code: string }): Pr
 export async function resetPassword(data: { email: string; code: string; new_password: string }): Promise<void> {
   return publicApiPost("/reset-password", data);
 }
+
+export async function loginWithGoogle(googleIdToken: string): Promise<AuthResponse> {
+  const rawData = await publicApiPost<Record<string, unknown>>("/login/google", {
+    google_id_token: googleIdToken,
+  });
+  return normalizeTokenResponse(rawData);
+}

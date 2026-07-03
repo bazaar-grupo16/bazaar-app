@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert, TextInput, Modal } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert, TextInput, Modal, BackHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { RootStackParamList } from "@/navigation";
-import { useOrder, useSaleDetail, useCancelOrder, useCancelOrderItem, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus, getStatusColor } from "@/entities/order";
+import { useOrder, useSaleDetail, useCancelOrder, useCancelOrderItem, useCancelSaleItem, useConfirmItemDelivery, useUpdateSaleItemStatus, getStatusColor, useCheckoutStore } from "@/entities/order";
 import type { OrderItemStatus, OrderStatus } from "@/entities/order";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Button } from "@/shared/ui";
@@ -40,14 +40,24 @@ export function OrderDetailPage() {
   const [expandedItemHistories, setExpandedItemHistories] = useState<Record<string, boolean>>({});
 
   const handleBack = () => {
-    if (fromCheckout) {
-      navigation.navigate("Tabs");
-    } else {
-      navigation.goBack();
-    }
+    navigation.navigate("Tabs", { screen: "Orders" } as any);
   };
 
-  const buyerQuery = useOrder(fromSales ? undefined : orderId, false);
+  useEffect(() => {
+    const backAction = () => {
+      navigation.navigate("Tabs", { screen: "Orders" } as any);
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [navigation]);
+
+  const buyerQuery = useOrder(fromSales ? undefined : orderId, 5000, true);
   const sellerQuery = useSaleDetail(fromSales ? orderId : undefined);
   const { data: order, isLoading } = fromSales ? sellerQuery : buyerQuery;
   const { mutate: cancelOrderMutate, isPending: isCancelling } = useCancelOrder(orderId);
@@ -67,7 +77,20 @@ export function OrderDetailPage() {
       "¿Estás seguro de que querés cancelar esta orden?",
       [
         { text: "No, volver", style: "cancel" },
-        { text: "Sí, cancelar", style: "destructive", onPress: () => cancelOrderMutate() },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: () => {
+            const wasPendingPayment = order?.status === "PENDIENTE_DE_PAGO";
+            cancelOrderMutate(undefined, {
+              onSuccess: () => {
+                if (wasPendingPayment) {
+                  useCheckoutStore.getState().clearIdempotencyKey();
+                }
+              },
+            });
+          },
+        },
       ],
     );
   };
@@ -233,12 +256,12 @@ export function OrderDetailPage() {
         </View>
       </Modal>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}> 
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}>
         <View style={styles.section}>
           <Text style={styles.orderId}>Orden #{order.order_id.split("-")[0]}</Text>
           <Text style={styles.orderDate}>{date}</Text>
           {(() => {
-            const displayStatus = order.aggregated_status ?? order.status;
+            const displayStatus = order.aggregated_status;
             return (
               <View style={[styles.statusBadge, { backgroundColor: getStatusColor(displayStatus) + "20" }]}>
                 <Text style={[styles.statusText, { color: getStatusColor(displayStatus) }]}>
@@ -450,7 +473,7 @@ export function OrderDetailPage() {
           </TouchableOpacity>
         )}
 
-        {!fromSales && BUYER_CANCELLABLE.includes(order.status) && (
+        {!fromSales && BUYER_CANCELLABLE.includes(order.aggregated_status) && (
           <TouchableOpacity
             style={[styles.cancelButton, isCancelling && styles.buttonDisabled]}
             onPress={handleCancelOrder}
@@ -654,17 +677,6 @@ const styles = StyleSheet.create({
   confirmButton: {
     padding: spacing.xs,
   },
-  sellerActionButton: {
-    backgroundColor: colors.brand[500],
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-  },
-  sellerActionButtonText: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.semibold,
-    color: colors.white,
-  },
   itemHistorySection: {
     marginTop: spacing.sm,
   },
@@ -731,17 +743,26 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
   },
+  sellerActionButton: {
+    backgroundColor: colors.brand[500],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+  },
+  sellerActionButtonText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.white,
+  },
   confirmReceiptButton: {
+    backgroundColor: "#16a34a",
+    gap: spacing.xs,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.xs,
-    backgroundColor: "#16a34a",
-    borderRadius: radius.lg,
-    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
-    minHeight: 56,
-    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
   },
   buttonDisabled: {
     opacity: 0.6,

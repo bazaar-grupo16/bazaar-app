@@ -82,14 +82,6 @@ export function getSaleDetail(orderId: string) {
   );
 }
 
-export function updateOrderStatus(orderId: string, status: string, trackingCode?: string) {
-  const payload = trackingCode ? { status, tracking_code: trackingCode } : { status };
-  return wrapRequest<OrderResponse>(
-    protectedApi.patch(`/orders/${orderId}/status`, payload),
-    `PATCH /orders/${orderId}/status`,
-  );
-}
-
 export function getSalesHistory(page: number = 1, size: number = 50, status?: string) {
   const params = new URLSearchParams({ page: page.toString(), size: size.toString() });
   if (status) {

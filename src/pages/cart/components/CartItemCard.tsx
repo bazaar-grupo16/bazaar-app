@@ -22,7 +22,8 @@ export function CartItemCard({
   const lineTotal = (unitPrice * item.quantity).toFixed(2);
   const isInactive = item.status === "inactive";
   const isOutOfStock = item.status === "out_of_stock";
-  const hasIssue = isInactive || isOutOfStock;
+  const isBlocked = item.isBlocked;
+  const hasIssue = isInactive || isOutOfStock || isBlocked;
   const initial = item.title.charAt(0).toUpperCase();
 
   return (
@@ -43,9 +44,15 @@ export function CartItemCard({
           <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
 
           {hasIssue && (
-            <View style={[styles.statusBadge, isInactive ? styles.inactiveBadge : styles.outOfStockBadge]}>
-              <Text style={[styles.statusBadgeText, isInactive ? styles.inactiveBadgeText : styles.outOfStockBadgeText]}>
-                {isInactive ? "No disponible" : "Sin stock"}
+            <View style={[
+              styles.statusBadge,
+              isBlocked ? styles.blockedBadge : (isInactive ? styles.inactiveBadge : styles.outOfStockBadge)
+            ]}>
+              <Text style={[
+                styles.statusBadgeText,
+                isBlocked ? styles.blockedBadgeText : (isInactive ? styles.inactiveBadgeText : styles.outOfStockBadgeText)
+              ]}>
+                {isBlocked ? "Bloqueado" : (isInactive ? "No disponible" : "Sin stock")}
               </Text>
             </View>
           )}
@@ -95,7 +102,7 @@ export function CartItemCard({
             />
           </TouchableOpacity>
 
-          {!isInactive && (
+          {!isInactive && !isBlocked && (
             <Text style={styles.stockText}>{item.stock} disp.</Text>
           )}
         </View>
@@ -171,6 +178,9 @@ const styles = StyleSheet.create({
   inactiveBadge: {
     backgroundColor: colors.gray[900],
   },
+  blockedBadge: {
+    backgroundColor: colors.error,
+  },
   statusBadgeText: {
     fontSize: 12,
     fontWeight: typography.weight.bold,
@@ -179,6 +189,9 @@ const styles = StyleSheet.create({
     color: "#92400E",
   },
   inactiveBadgeText: {
+    color: colors.white,
+  },
+  blockedBadgeText: {
     color: colors.white,
   },
   unitPrice: {

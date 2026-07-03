@@ -28,6 +28,7 @@ export function useAddToWishlist() {
           image_url: null,
           in_stock: true,
           is_available: true,
+          is_blocked: false,
           catalog_available: true,
         };
         return { items: [...old.items, optimistic], total: old.total + 1 };

@@ -49,6 +49,7 @@ export function OrdersPage() {
   const [section, setSection] = useState<Section>("compras");
   const [purchaseStatus, setPurchaseStatus] = useState<OrderStatus | null>(null);
   const [saleStatus, setSaleStatus] = useState<OrderStatus | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     data: purchaseData,
@@ -86,8 +87,8 @@ export function OrdersPage() {
             <Text style={styles.orderDate}>{date}</Text>
           </View>
           <View style={styles.cardBody}>
-            <Text style={[styles.orderStatus, { color: getStatusColor(item.aggregated_status ?? item.status) }]}>
-              {(item.aggregated_status ?? item.status).replace(/_/g, " ")}
+            <Text style={[styles.orderStatus, { color: getStatusColor(item.aggregated_status) }]}>
+              {(item.aggregated_status).replace(/_/g, " ")}
             </Text>
             <Text style={styles.orderTotal}>${item.total_amount.toFixed(2)}</Text>
           </View>
@@ -188,6 +189,11 @@ export function OrdersPage() {
   const isLoading = section === "compras" ? purchaseLoading : salesLoading;
   const isRefetching = section === "compras" ? purchaseRefetching : salesRefetching;
   const refetch = section === "compras" ? refetchPurchases : refetchSales;
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
   return (
     <View style={styles.fill}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -237,8 +243,8 @@ export function OrdersPage() {
             </View>
           }
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.md, flexGrow: 1 }]}
-          refreshing={isRefetching}
-          onRefresh={() => void refetch()}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
         />
       ) : (
         <FlatList
@@ -260,8 +266,8 @@ export function OrdersPage() {
             </View>
           }
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.md, flexGrow: 1 }]}
-          refreshing={isRefetching}
-          onRefresh={() => void refetch()}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
         />
       )}
     </View>

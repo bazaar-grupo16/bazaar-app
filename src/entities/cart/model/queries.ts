@@ -16,5 +16,6 @@ export function useCart() {
       return getCart(userId);
     },
     enabled: !!userId,
+    refetchInterval: 5000,
   });
 }

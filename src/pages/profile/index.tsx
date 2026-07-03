@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "@/navigation";
-import { clearAuthSession, useAuthStore } from "@/shared/auth";
+import { clearAuthSession, isPinConfigured, useAuthStore, useSessionUserId } from "@/shared/auth";
 import { apiDelete } from "@/shared/api";
 import { useMyProducts } from "@/entities/product";
 import { useOrdersHistory, useSalesHistory } from "@/entities/order";
@@ -24,10 +24,11 @@ import { EmptyState } from "./components/EmptyState";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { WishlistTab } from "./components/WishlistTab";
 import { EditProfileModal } from "./components/EditProfileModal";
+import { PinSetupModal } from "./components/PinSetupModal";
 
 const EMPTY_MESSAGES: Record<PublicationsSubTab, { title: string; subtitle: string }> = {
-  activas:    { title: "Sin publicaciones activas",    subtitle: "Publicá algo y empezá a vender" },
-  inactivas:  { title: "Sin publicaciones inactivas",  subtitle: "Podés desactivar publicaciones desde el editor" },
+  activas: { title: "Sin publicaciones activas", subtitle: "Publicá algo y empezá a vender" },
+  inactivas: { title: "Sin publicaciones inactivas", subtitle: "Podés desactivar publicaciones desde el editor" },
   "sin-stock": { title: "Sin publicaciones sin stock", subtitle: "Los productos con stock 0 aparecen aquí" },
 };
 
@@ -35,10 +36,13 @@ export function ProfilePage() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Tabs">>();
   const queryClient = useQueryClient();
   const isGuest = !useAuthStore((state) => state.accessToken);
+  const userId = useSessionUserId();
   const [tab, setTab] = useState<Tab>("publicaciones");
   const [subTab, setSubTab] = useState<PublicationsSubTab>("activas");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pinEnabled, setPinEnabled] = useState(false);
 
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -62,24 +66,33 @@ export function ProfilePage() {
     loadProfile();
   }, [isGuest]);
 
+  useEffect(() => {
+    if (isGuest) {
+      setPinEnabled(false);
+      return;
+    }
+
+    void isPinConfigured().then(setPinEnabled);
+  }, [isGuest]);
+
   const { data, isLoading } = useMyProducts();
   const { data: salesCountData } = useSalesHistory(1, 1, "CONFIRMADA");
   const { data: ordersData } = useOrdersHistory(1, 1, "CONFIRMADA");
   const allListings = data?.data ?? [];
 
-  const activeListings    = allListings.filter((p) => p.status === "active");
-  const inactiveListings  = allListings.filter((p) => p.status === "inactive");
+  const activeListings = allListings.filter((p) => p.status === "active");
+  const inactiveListings = allListings.filter((p) => p.status === "inactive");
   const outOfStockListings = allListings.filter((p) => p.status === "out_of_stock");
 
   const filteredListings =
-    subTab === "activas"    ? activeListings :
-    subTab === "inactivas"  ? inactiveListings :
-    outOfStockListings;
+    subTab === "activas" ? activeListings :
+      subTab === "inactivas" ? inactiveListings :
+        outOfStockListings;
 
   const counts = {
-    activas:  activeListings.length,
+    activas: activeListings.length,
     inactivas: inactiveListings.length,
-    sinStock:  outOfStockListings.length,
+    sinStock: outOfStockListings.length,
   };
 
   const salesCount = salesCountData?.total ?? 0;
@@ -168,7 +181,7 @@ export function ProfilePage() {
               ) : (
                 <ProductGrid
                   items={filteredListings}
-                  onPreview={handlePreview}
+                  onPreview={subTab === "inactivas" ? handleEdit : handlePreview}
                   onEdit={handleEdit}
                 />
               )}
@@ -181,16 +194,27 @@ export function ProfilePage() {
 
       <SettingsPanel
         visible={settingsOpen}
+        pinEnabled={pinEnabled}
         onClose={() => setSettingsOpen(false)}
         onSignOut={handleSignOut}
         onEditProfile={() => setEditModalOpen(true)}
+        onManagePin={() => setPinModalOpen(true)}
       />
       <EditProfileModal
         visible={editModalOpen}
         profile={userProfile}
         onClose={() => setEditModalOpen(false)}
         onSaveSuccess={(updatedProfile) => {
-          setUserProfile(updatedProfile); 
+          setUserProfile(updatedProfile);
+        }}
+      />
+      <PinSetupModal
+        visible={pinModalOpen}
+        pinEnabled={pinEnabled}
+        userId={userId}
+        onClose={() => setPinModalOpen(false)}
+        onSaved={() => {
+          void isPinConfigured().then(setPinEnabled);
         }}
       />
     </ScrollView>
