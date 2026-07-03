@@ -49,6 +49,7 @@ export function OrdersPage() {
   const [section, setSection] = useState<Section>("compras");
   const [purchaseStatus, setPurchaseStatus] = useState<OrderStatus | null>(null);
   const [saleStatus, setSaleStatus] = useState<OrderStatus | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     data: purchaseData,
@@ -188,7 +189,6 @@ export function OrdersPage() {
   const isLoading = section === "compras" ? purchaseLoading : salesLoading;
   const isRefetching = section === "compras" ? purchaseRefetching : salesRefetching;
   const refetch = section === "compras" ? refetchPurchases : refetchSales;
-  const [refreshing, setRefreshing] = useState(false);
   const handleRefresh = async () => {
     setRefreshing(true);
     await refetch();
